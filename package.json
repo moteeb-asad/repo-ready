@@ -1,8 +1,14 @@
 {
-  "name": "repo-ready",
-  "version": "1.0.0",
+  "name": "check-repo-ready",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "repo-ready": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/cli.ts --format esm --clean",
     "typecheck": "tsc --noEmit",

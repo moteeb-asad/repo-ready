@@ -7,7 +7,7 @@
 You run it inside a repo:
 
 ```bash
-npx repo-ready
+npx check-repo-ready
 ```
 
 It reads the local git folder and the GitHub settings, and prints a report: what is fine, what is missing, and how to fix it. Later, `--fix` will fix the things that can be fixed, through a pull request, never by pushing to main.
@@ -64,10 +64,10 @@ Start with these 5 for the first release: protection, CI on PR, `.env` tracked, 
 
 ## How it works for the user
 
-1. `npx repo-ready` prints a grouped report with a score.
-2. `npx repo-ready explain <check-id>` explains one problem and how to fix it.
-3. `npx repo-ready --fix` asks before each change, then puts file changes on a new branch and opens a pull request.
-4. `npx repo-ready --json` for scripts and agents. `--ci` exits with code 1 when something fails.
+1. `npx check-repo-ready` prints a grouped report with a score.
+2. `npx check-repo-ready explain <check-id>` explains one problem and how to fix it.
+3. `npx check-repo-ready --fix` asks before each change, then puts file changes on a new branch and opens a pull request.
+4. `npx check-repo-ready --json` for scripts and agents. `--ci` exits with code 1 when something fails.
 
 Example report:
 
@@ -145,7 +145,7 @@ src/
 1. Audit MVP: 5 checks and a readable report. Read-only.
 2. `--json` and `--ci` (exit codes).
 3. `--fix`: create the ruleset through the API, add `ci.yml`, `.env.example` and `.gitignore` entries, all through a pull request.
-4. Agent skill: a `SKILL.md` that tells Claude Code or Cursor to run `npx repo-ready --json`, explain the results and do the fixes with the user.
+4. Agent skill: a `SKILL.md` that tells Claude Code or Cursor to run `npx check-repo-ready --json`, explain the results and do the fixes with the user.
 5. GitHub Action that runs it on every pull request and comments the report.
 6. Later: a `gh` extension in a separate repo named `gh-repo-ready` that calls the npm package.
 
@@ -183,4 +183,8 @@ Build the smallest thing that solves the task. Nothing more.
 - `develop` branch created.
 - Packages installed: commander, @octokit/rest, execa, picocolors, typescript, tsup, vitest, @types/node.
 - README written with "Early, in progress".
-- Next: add `ci.yml`, set up the ruleset on `main` and `develop`, then build the first check, `branch-protection`.
+- CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
+- Rulesets on `main` and `develop`: pull request required, `check` must pass. Merge `develop` into `main` with a merge commit, not squash.
+- Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
+- `src/cli.ts` is a placeholder. No checks yet.
+- Next: build `env-tracked` first (local only) to set up the `Result` type, runner and report. Then `branch-protection`, which adds `context.ts` and the GitHub API.
