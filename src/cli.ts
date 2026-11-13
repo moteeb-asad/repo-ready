@@ -3,7 +3,10 @@ import { Command } from "commander";
 import { execa } from "execa";
 import { envExample } from "./checks/env-example.js";
 import { envInHistory } from "./checks/env-in-history.js";
+import { branchProtection } from "./checks/branch-protection.js";
+import { ciOnPr } from "./checks/ci-on-pr.js";
 import { envTracked } from "./checks/env-tracked.js";
+import { readme } from "./checks/readme.js";
 import { run } from "./runner.js";
 
 const program = new Command();
@@ -19,7 +22,7 @@ program
       return;
     }
 
-    await run([envTracked, envInHistory, envExample]);
+    await run([branchProtection, ciOnPr, envTracked, envInHistory, envExample, readme]);
   });
 
 await program.parseAsync();
