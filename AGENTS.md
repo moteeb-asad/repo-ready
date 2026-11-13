@@ -153,7 +153,8 @@ src/
 
 - `main` is what is released. `develop` is where work comes together.
 - Every change is a short branch: `feat/`, `fix/`, `chore/`, `docs/`, `test/`, `refactor/`.
-- Every branch goes into `develop` through a pull request. Releases are one pull request from `develop` into `main`.
+- Every branch goes into `develop` through a pull request. Releases are one pull request from `develop` into `main`, merged with a merge commit (the only method `main` allows). No back-merge from `main` into `develop` is needed.
+- Before merging a pull request into `develop`, its branch must be up to date with `develop`. Use "Update branch" on the pull request.
 - CI runs on every pull request: lint, type check, tests, build.
 - Commit messages follow Conventional Commits: `feat(checks): add env-in-history check`.
 - No AI attribution in commit messages. Never mention Claude or any AI tool in commits or PRs.
@@ -184,7 +185,7 @@ Build the smallest thing that solves the task. Nothing more.
 - Packages installed: commander, @octokit/rest, execa, picocolors, typescript, tsup, vitest, @types/node.
 - README written with "Early, in progress".
 - CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
-- Rulesets on `main` and `develop`: pull request required, `check` must pass. Merge `develop` into `main` with a merge commit, not squash.
+- Rulesets: "Protect main branch" (`main`) and "Protect develop" (`develop`). Both require a pull request and a passing `check`, block force pushes and deletion. Only `develop` requires branches to be up to date: `main` only takes pull requests from `develop`, and CI already tests the merge result, so on `main` it would only force a back-merge after every release. `main` allows merge commits only.
 - Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
 - `src/cli.ts` is a placeholder. No checks yet.
 - Next: build `env-tracked` first (local only) to set up the `Result` type, runner and report. Then `branch-protection`, which adds `context.ts` and the GitHub API.
