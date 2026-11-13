@@ -1,8 +1,7 @@
 {
   "name": "check-repo-ready",
-  "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.2",
+  "description": "Check if your GitHub repo is ready to share: branch protection, CI on pull requests, secrets in git history, and a README with run steps.",
   "bin": {
     "repo-ready": "dist/cli.js"
   },
@@ -18,10 +17,24 @@
     "type": "git",
     "url": "git+https://github.com/moteeb-asad/repo-ready.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "cli",
+    "npx",
+    "repo-health",
+    "branch-protection",
+    "github-rulesets",
+    "github-actions",
+    "secret-detection",
+    "developer-tools",
+    "ai-coding",
+    "readme"
+  ],
+  "author": "Moteeb Asad (https://moteebasad.dev)",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "bugs": {
     "url": "https://github.com/moteeb-asad/repo-ready/issues"
   },
