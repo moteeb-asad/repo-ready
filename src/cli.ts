@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { envTracked } from "./checks/env-tracked.js";
+import { run } from "./runner.js";
 
 const program = new Command();
 
 program
   .name("repo-ready")
   .description("Check if your GitHub repo is ready to share.")
-  .action(() => {
-    console.log("repo-ready: no checks yet.");
+  .action(async () => {
+    await run([envTracked]);
   });
 
-program.parse();
+await program.parseAsync();
