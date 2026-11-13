@@ -22,8 +22,11 @@ export async function run(checks: Check[]): Promise<Result[]> {
     console.log(`  ${icons[result.status]} ${result.id.padEnd(20)} ${result.message}`);
   }
 
-  const problems = results.filter((result) => result.status !== "pass").length;
-  console.log(`\n  ${problems} problem${problems === 1 ? "" : "s"}`);
+  const problems = results.filter((result) => result.status === "fail").length;
+  const warnings = results.filter((result) => result.status === "warn").length;
+  console.log(
+    `\n  ${problems} problem${problems === 1 ? "" : "s"}, ${warnings} warning${warnings === 1 ? "" : "s"}`,
+  );
 
   return results;
 }
