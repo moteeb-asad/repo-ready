@@ -4,7 +4,7 @@
 
 Check if your GitHub repo is ready to share.
 
-    npx repo-ready
+    npx check-repo-ready
 
 ## What it checks
 
