@@ -24,7 +24,7 @@ export function findEnvCommits(lines: string[]): Found[] {
 export async function envInHistory(): Promise<Result> {
   const { stdout } = await execa(
     "git",
-    ["log", "--all", "--diff-filter=A", "--name-only", "--format=@@%h|%cr", "--", "*.env*"],
+    ["log", "--all", "--diff-filter=A", "--name-only", "--format=@@%h|%cr", "--", ":/*.env*"],
     { lines: true },
   );
   const found = findEnvCommits(stdout);
