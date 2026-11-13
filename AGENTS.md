@@ -183,4 +183,8 @@ Build the smallest thing that solves the task. Nothing more.
 - `develop` branch created.
 - Packages installed: commander, @octokit/rest, execa, picocolors, typescript, tsup, vitest, @types/node.
 - README written with "Early, in progress".
-- Next: add `ci.yml`, set up the ruleset on `main` and `develop`, then build the first check, `branch-protection`.
+- CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
+- Rulesets on `main` and `develop`: pull request required, `check` must pass. Merge `develop` into `main` with a merge commit, not squash.
+- Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
+- `src/cli.ts` is a placeholder. No checks yet.
+- Next: build `env-tracked` first (local only) to set up the `Result` type, runner and report. Then `branch-protection`, which adds `context.ts` and the GitHub API.
