@@ -30,7 +30,8 @@
     "@octokit/rest": "^22.0.1",
     "commander": "^15.1.0",
     "execa": "^10.2.1",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
