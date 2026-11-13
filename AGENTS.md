@@ -162,6 +162,21 @@ src/
 - Write tests for each check, including the failure case.
 - I'm on Windows with PowerShell 5, so `&&` does not work in my terminal. Give commands one per line.
 
+## Keep it simple
+
+Build the smallest thing that solves the task. Nothing more.
+
+- Do only what was asked. If something else looks worth changing, say so; don't change it.
+- No new dependency unless the task can't be done without one. Ask first.
+- No new abstraction (base class, factory, plugin system, generic helper) until the same code exists in at least three places.
+- No config options, flags or settings that nobody asked for.
+- Prefer one plain function over a class. Prefer a standard Node or TypeScript API over a package.
+- Don't add error handling, retries or caching for cases that can't happen yet.
+- Don't create new folders or files to "organise" a few lines of code.
+- Small diffs. If a change touches more than 5 files, stop and explain why before going on.
+- Before writing code, say in 2-3 lines what you'll change and why. If there's a simpler way, use it.
+- When in doubt between two approaches, pick the one with less code.
+
 ## Current status
 
 - Repo created: public, `moteeb-asad/repo-ready`, with MIT license and Node `.gitignore`.
