@@ -12,7 +12,7 @@ export function findEnvFiles(files: string[]): string[] {
 }
 
 export async function envTracked(): Promise<Result> {
-  const { stdout } = await execa("git", ["ls-files"], { lines: true });
+  const { stdout } = await execa("git", ["ls-files", "--full-name", ":/"], { lines: true });
   const found = findEnvFiles(stdout);
 
   if (found.length === 0) {
