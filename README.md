@@ -4,9 +4,27 @@
 
 Check if your GitHub repo is ready to share.
 
+## Install and run
+
+Run these inside your project folder.
+
+**Without installing** (npx downloads it once and caches it):
+
     npx check-repo-ready
 
-Run it inside your project folder.
+Add `@latest` to make sure you get the newest version: `npx check-repo-ready@latest`.
+
+**Or install it once** and use the short `repo-ready` command in any repo:
+
+    npm install -g check-repo-ready
+    repo-ready
+
+Update with `npm update -g check-repo-ready`. Remove with `npm uninstall -g check-repo-ready`.
+
+The npm package is `check-repo-ready`. The command it installs is `repo-ready`.
+`npx repo-ready` does not work: there is no npm package called `repo-ready`.
+
+## Example
 
 ```
   ✓ branch-protection    main: pull request required; develop: pull request required
