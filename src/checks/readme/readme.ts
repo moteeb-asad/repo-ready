@@ -1,5 +1,5 @@
-import { execa } from "execa";
-import type { Result } from "../runner.js";
+import { readTracked, trackedFiles } from "../../git.js";
+import type { Result } from "../../runner.js";
 
 const README = /^readme(\.(md|markdown|txt|rst))?$/i;
 
@@ -16,8 +16,7 @@ export function hasRunSteps(content: string): boolean {
 }
 
 export async function readme(): Promise<Result> {
-  const { stdout: files } = await execa("git", ["ls-files", "--full-name", ":/"], { lines: true });
-  const file = findReadme(files);
+  const file = findReadme(await trackedFiles());
 
   if (!file) {
     return {
@@ -28,7 +27,7 @@ export async function readme(): Promise<Result> {
     };
   }
 
-  const { stdout: content } = await execa("git", ["show", `:${file}`]);
+  const content = await readTracked(file);
 
   if (!hasRunSteps(content)) {
     return {

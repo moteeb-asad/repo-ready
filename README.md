@@ -143,7 +143,8 @@ npm link        # makes your local build available as `repo-ready`
 
 - Branch from `develop` and open the pull request into `develop`.
 - Use [Conventional Commits](https://www.conventionalcommits.org): `feat(checks): add ci-green check`.
-- Each check is one file in `src/checks/`, with a test file next to it that covers the failure case.
+- Each check is one file in its report section's folder (`src/checks/secrets/`, ...), with a test
+  file next to it that covers the failure case. Add it to that folder's `index.ts`.
 - Design decisions are recorded in [`docs/decisions/`](docs/decisions).
 
 ## License
