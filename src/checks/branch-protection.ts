@@ -6,53 +6,72 @@ type Status = Result["status"];
 export type BranchState = { name: string; rules: string[]; classic: boolean };
 
 const ID = "branch-protection";
-const RANK: Record<Status, number> = { pass: 0, warn: 1, fail: 2 };
 
-export function judgeBranch(branch: BranchState): { status: Status; text: string } {
+type Judged = { status: Status; text: string; hint?: string };
+
+export function judgeBranch(branch: BranchState): Judged {
   const pr = branch.rules.includes("pull_request");
   const ci = branch.rules.includes("required_status_checks");
 
   if (pr && ci) {
-    return { status: "pass", text: `${branch.name}: pull request and passing CI required` };
+    return { status: "pass", text: "pull request and passing CI required" };
   }
   if (pr) {
-    return { status: "warn", text: `${branch.name}: pull request required, but CI doesn't have to pass` };
+    return {
+      status: "warn",
+      text: "pull request required, but CI doesn't have to pass",
+      hint: "In the ruleset, turn on Require status checks to pass and add your CI job",
+    };
   }
   // Classic protection passes on `protected: true` alone. Its settings (required reviews,
   // status checks) need admin access to read, so they are not checked.
   if (branch.classic) {
-    return { status: "pass", text: `${branch.name}: classic branch protection, rules not checked` };
+    return { status: "pass", text: "classic branch protection, rules not checked" };
   }
   if (branch.rules.length > 0) {
-    return { status: "warn", text: `${branch.name}: has rules, but direct pushes are allowed` };
+    return {
+      status: "warn",
+      text: "has rules, but direct pushes are allowed",
+      hint: "In the ruleset, turn on Require a pull request before merging",
+    };
   }
-  return { status: "fail", text: `${branch.name}: not protected, anyone can push to it` };
+  return {
+    status: "fail",
+    text: "not protected, anyone can push to it",
+    hint: "Settings → Rules → Rulesets: require a pull request and passing status checks",
+  };
 }
 
-export function judge(branches: BranchState[], isPrivate: boolean): Result {
-  const judged = branches.map(judgeBranch);
-  let status = judged.reduce<Status>((worst, b) => (RANK[b.status] > RANK[worst] ? b.status : worst), "pass");
-  let message = judged.map((b) => b.text).join("; ");
+// One result per branch, labelled with the branch name.
+export function judge(branches: BranchState[], isPrivate: boolean): Result[] {
+  return branches.map((branch) => {
+    let { status, text, hint } = judgeBranch(branch);
 
-  // Rulesets and branch protection on private repos need a paid GitHub plan.
-  if (status === "fail" && isPrivate) {
-    status = "warn";
-    message += " (private repos need GitHub Pro to enforce protection)";
-  }
+    // Rulesets and branch protection on private repos need a paid GitHub plan.
+    if (status === "fail" && isPrivate) {
+      status = "warn";
+      text += " (private repos need GitHub Pro to enforce protection)";
+      hint = "Make the repo public, or use GitHub Pro to enforce protection";
+    }
 
-  return { id: ID, status, message };
+    const result: Result = { id: ID, label: branch.name, status, message: text };
+    if (hint) result.hint = hint;
+    return result;
+  });
 }
 
-function skipped(reason: string): Result {
-  return { id: ID, status: "warn", message: `skipped: ${reason}` };
+function skipped(reason: string, hint?: string): Result {
+  const result: Result = { id: ID, status: "warn", message: `skipped: ${reason}` };
+  if (hint) result.hint = hint;
+  return result;
 }
 
-export async function branchProtection(): Promise<Result> {
+export async function branchProtection(): Promise<Result | Result[]> {
   const remote = await githubRemote();
   if (!remote) return skipped("origin is not a GitHub repo");
 
   const token = await ghToken();
-  if (!token) return skipped("not logged in to GitHub, run gh auth login or set GITHUB_TOKEN");
+  if (!token) return skipped("not logged in to GitHub", "Run gh auth login, or set GITHUB_TOKEN");
 
   // Silence Octokit's own logging: an expected 404 (no develop branch) is not an error.
   const quiet = () => {};

@@ -20,13 +20,23 @@ export async function readme(): Promise<Result> {
   const file = findReadme(files);
 
   if (!file) {
-    return { id: "readme", status: "fail", message: "no README at the repo root" };
+    return {
+      id: "readme",
+      status: "fail",
+      message: "no README at the repo root",
+      hint: "GitHub only shows a README at the root. Move or add one there",
+    };
   }
 
   const { stdout: content } = await execa("git", ["show", `:${file}`]);
 
   if (!hasRunSteps(content)) {
-    return { id: "readme", status: "fail", message: `${file} has no setup or run steps` };
+    return {
+      id: "readme",
+      status: "fail",
+      message: `${file} has no setup or run steps`,
+      hint: "Add the commands to install and run the project, for example npm install and npm run dev",
+    };
   }
 
   return { id: "readme", status: "pass", message: `${file} has setup or run steps` };
