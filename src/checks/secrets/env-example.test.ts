@@ -69,11 +69,24 @@ describe("envVarNames", () => {
   it("still counts reads without a default, and a comma that only separates arguments", () => {
     expect(
       envVarNames([
-        'app.py:override = os.environ.get("DBLOG_COMPOSE_PROJECT_NAME")',
+        "src/app.ts:const name = process.env.APP_NAME;",
         "src/db.ts:connect(process.env.DATABASE_URL, { ssl: true })",
         'app.py:key = os.environ["SECRET_KEY"]',
       ]),
-    ).toEqual(["DBLOG_COMPOSE_PROJECT_NAME", "DATABASE_URL", "SECRET_KEY"]);
+    ).toEqual(["APP_NAME", "DATABASE_URL", "SECRET_KEY"]);
+  });
+
+  it("treats a bare Python .get / getenv as optional, unless the name looks required", () => {
+    expect(
+      envVarNames([
+        'lib.py:override = os.environ.get("DBLOG_COMPOSE_PROJECT_NAME")',
+        'lib.py:override = os.environ.get("DBLOG_CONTROL_PLANE_PORT")',
+        'lib.py:jar = os.environ.get("DBLOG_DEMO_JAR")',
+        'app.py:client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))',
+        'app.py:engine = create_engine(os.environ.get("DATABASE_URL"))',
+        'app.py:mode = os.environ["APP_MODE"]',
+      ]),
+    ).toEqual(["OPENAI_API_KEY", "DATABASE_URL", "APP_MODE"]);
   });
 
   it("counts a variable as required if any read has no default", () => {
