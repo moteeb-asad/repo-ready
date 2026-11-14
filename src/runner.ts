@@ -2,13 +2,15 @@ import pc from "picocolors";
 
 export type Result = {
   id: string;
+  label?: string; // shown instead of the id, e.g. a branch name
   status: "pass" | "warn" | "fail";
   message: string;
   hint?: string; // what to do about a warning or failure
   fix?: () => Promise<void>;
 };
 
-export type Check = () => Promise<Result>;
+// A check returns one result, or one per item it looks at (e.g. per branch).
+export type Check = () => Promise<Result | Result[]>;
 
 const icons = {
   pass: pc.green("✓"),
@@ -24,7 +26,7 @@ export async function run(groups: Groups, repo: string): Promise<Result[]> {
   const grouped = await Promise.all(
     Object.entries(groups).map(async ([name, checks]) => ({
       name,
-      results: await Promise.all(checks.map((check) => check())),
+      results: (await Promise.all(checks.map((check) => check()))).flat(),
     })),
   );
 
@@ -36,7 +38,7 @@ export async function run(groups: Groups, repo: string): Promise<Result[]> {
     let lastHint: string | undefined;
 
     for (const result of group.results) {
-      console.log(`  ${icons[result.status]} ${result.id.padEnd(20)}   ${result.message}`);
+      console.log(`  ${icons[result.status]} ${(result.label ?? result.id).padEnd(20)}   ${result.message}`);
 
       // A hint shared by consecutive lines prints once.
       if (result.status !== "pass" && result.hint && result.hint !== lastHint) {
