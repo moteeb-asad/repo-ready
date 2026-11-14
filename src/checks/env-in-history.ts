@@ -37,6 +37,7 @@ export async function envInHistory(): Promise<Result> {
   return {
     id: "env-in-history",
     status: "fail",
-    message: `committed in history: ${list}. Rotate any keys it held`,
+    message: `committed in history: ${list}`,
+    hint: "Rotate every key it held. Deleting the file or rewriting history does not make a leaked key safe",
   };
 }
