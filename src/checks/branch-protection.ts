@@ -52,7 +52,7 @@ export async function branchProtection(): Promise<Result> {
   if (!remote) return skipped("origin is not a GitHub repo");
 
   const token = await ghToken();
-  if (!token) return skipped("not logged in to GitHub, run gh auth login");
+  if (!token) return skipped("not logged in to GitHub, run gh auth login or set GITHUB_TOKEN");
 
   // Silence Octokit's own logging: an expected 404 (no develop branch) is not an error.
   const quiet = () => {};
