@@ -16,18 +16,31 @@ export function findEnvExample(files: string[]): string | undefined {
   return files.find((file) => posix.basename(file) === ".env.example");
 }
 
-// `lines` is git grep output: "<file>:<content>". Returns the project's own variable names.
+// A read with a default is optional: the code works without the variable.
+// JS/TS: process.env.X || "a", process.env.X ?? "a", Deno.env.get("X") ?? "a".
+// Python: os.environ.get("X", "a"), os.getenv("X", "a"). A bare .get("X") is not enough to tell.
+// A read right after || or ?? is the fallback in a chain (process.env.A || process.env.B): optional too.
+function hasDefault(m: RegExpMatchArray, line: string): boolean {
+  const before = line.slice(0, m.index ?? 0);
+  const rest = line.slice((m.index ?? 0) + m[0].length);
+  if (/(\|\||\?\?)\s*$/.test(before)) return true;
+  const python = Boolean(m[4] ?? m[5]);
+  return python ? /^\s*,/.test(rest) && !m[0].includes("[") : /^\s*\)?\s*(\|\||\?\?)/.test(rest);
+}
+
+// `lines` is git grep output: "<file>:<content>". Returns the env variables the project needs:
+// read somewhere without a default, and not set by the runtime.
 export function envVarNames(lines: string[]): string[] {
-  const names = new Set<string>();
+  const required = new Set<string>();
   for (const raw of lines) {
     const match = raw.match(/^(.+?):(.*)$/);
     if (!match?.[1] || match[2] === undefined || NOT_CODE.test(match[1])) continue;
     for (const m of match[2].matchAll(ENV_READ)) {
       const name = m.slice(1).find(Boolean);
-      if (name && !RUNTIME.has(name)) names.add(name);
+      if (name && !RUNTIME.has(name) && !hasDefault(m, match[2])) required.add(name);
     }
   }
-  return [...names];
+  return [...required];
 }
 
 export async function envExample(): Promise<Result> {

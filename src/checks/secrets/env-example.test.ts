@@ -53,6 +53,35 @@ describe("envVarNames", () => {
     ).toEqual([]);
   });
 
+  it("ignores reads with a default, which are optional", () => {
+    expect(
+      envVarNames([
+        'a.ts:const port = process.env.API_PORT || "3000";',
+        "b.ts:const region = process.env.AWS_REGION ?? DEFAULT_REGION;",
+        'c.ts:const t = Deno.env.get("TIMEOUT_MS") ?? "500";',
+        'app.py:jar = os.environ.get("DBLOG_DEMO_JAR", "demo.jar")',
+        "app.py:level = os.getenv('LOG_LEVEL', 'info')",
+        "src/github.ts:const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("still counts reads without a default, and a comma that only separates arguments", () => {
+    expect(
+      envVarNames([
+        'app.py:override = os.environ.get("DBLOG_COMPOSE_PROJECT_NAME")',
+        "src/db.ts:connect(process.env.DATABASE_URL, { ssl: true })",
+        'app.py:key = os.environ["SECRET_KEY"]',
+      ]),
+    ).toEqual(["DBLOG_COMPOSE_PROJECT_NAME", "DATABASE_URL", "SECRET_KEY"]);
+  });
+
+  it("counts a variable as required if any read has no default", () => {
+    expect(
+      envVarNames(['a.ts:const u = process.env.API_URL || "http://localhost";', "b.ts:fetch(process.env.API_URL)"]),
+    ).toEqual(["API_URL"]);
+  });
+
   it("lists each name once", () => {
     expect(envVarNames(["a.ts:process.env.JWT_SECRET", "b.ts:process.env.JWT_SECRET"])).toEqual(["JWT_SECRET"]);
   });
