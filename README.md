@@ -37,7 +37,7 @@ The npm package is `check-repo-ready`. The command it installs is `repo-ready`.
   0 problems, 1 warning
 ```
 
-repo-ready only reads. It never changes your repo.
+**repo-ready only reads. It never changes your repo.**
 
 ## What it checks
 
