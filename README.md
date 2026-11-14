@@ -21,15 +21,24 @@ npx check-repo-ready
 ```
 
 ```
-  ✓ branch-protection    main: pull request and passing CI required; develop: pull request and passing CI required
-  ✓ ci-on-pr             .github/workflows/ci.yml
-  ✓ env-tracked          no .env file is tracked
-  ✓ env-in-history       no .env file in git history
-  ! env-example          no .env.example
-                         → If the project needs environment variables, copy .env to .env.example with the values removed
-  ✓ readme               README.md has setup or run steps
+check-repo-ready  repo-ready
 
-  0 problems, 1 warning
+Branches
+  ✓ branch-protection      main: pull request and passing CI required; develop: pull request and passing CI required
+
+CI
+  ✓ ci-on-pr               .github/workflows/ci.yml
+
+Secrets
+  ✓ env-tracked            no .env file is tracked
+  ✓ env-in-history         no .env file in git history
+  ! env-example            no .env.example
+                           → If the project needs environment variables, copy .env to .env.example with the values removed
+
+README
+  ✓ readme                 README.md has setup or run steps
+
+0 problems, 1 warning
 ```
 
 `✓` passed, `!` warning, `✗` problem. Each warning and problem has a `→` line that says what to do.
