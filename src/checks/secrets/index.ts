@@ -3,8 +3,9 @@ import { envExample } from "./env-example.js";
 import { envInHistory } from "./env-in-history.js";
 import { envTracked } from "./env-tracked.js";
 import { secretsInCode } from "./secrets-in-code.js";
+import { secretsLogged } from "./secrets-logged.js";
 
 export const secrets: Group = {
   name: "Secrets",
-  checks: [envTracked, envInHistory, secretsInCode, envExample],
+  checks: [envTracked, envInHistory, secretsInCode, secretsLogged, envExample],
 };
