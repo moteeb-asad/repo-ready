@@ -7,7 +7,10 @@ const icons = {
   fail: pc.red("✗"),
 };
 
-export async function run(groups: Group[], repo: string): Promise<Result[]> {
+// title: "repo (branch)". note: printed under the title, not counted as a warning.
+export type Header = { title: string; note?: string | undefined };
+
+export async function run(groups: Group[], header: Header): Promise<Result[]> {
   // Run every check at once, then print in group order.
   const grouped = await Promise.all(
     groups.map(async (group) => ({
@@ -16,7 +19,8 @@ export async function run(groups: Group[], repo: string): Promise<Result[]> {
     })),
   );
 
-  console.log(`${pc.bold("check-repo-ready")}  ${repo}`);
+  console.log(`${pc.bold("check-repo-ready")}  ${header.title}`);
+  if (header.note) console.log(pc.yellow(`→ ${header.note}`));
 
   const hintIndent = " ".repeat(27); // lines the hint up under the message
   for (const group of grouped) {
