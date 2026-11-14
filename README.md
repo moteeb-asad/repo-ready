@@ -21,7 +21,7 @@ npx check-repo-ready
 ```
 
 ```
-check-repo-ready  repo-ready
+check-repo-ready  repo-ready (main)
 
 Branches
   ✓ main                   pull request and passing CI required
@@ -45,6 +45,9 @@ README
 ```
 
 `✓` passed, `!` warning, `✗` problem. Each warning and problem has a `→` line that says what to do.
+
+The file checks read the branch you have checked out (shown in the header). On any other branch
+than the default one, the report says so: run it on the default branch to see what visitors see.
 
 ## Installation
 
