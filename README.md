@@ -24,7 +24,8 @@ npx check-repo-ready
 check-repo-ready  repo-ready
 
 Branches
-  ✓ branch-protection      main: pull request and passing CI required; develop: pull request and passing CI required
+  ✓ main                   pull request and passing CI required
+  ✓ develop                pull request and passing CI required
 
 CI
   ✓ ci-on-pr               .github/workflows/ci.yml
@@ -78,7 +79,7 @@ Update with `npm update -g check-repo-ready`, remove with `npm uninstall -g chec
 
 | Check | Passes when | Otherwise |
 |---|---|---|
-| `branch-protection` | The default branch, and `develop` if it exists, require a pull request and passing CI before a change is merged. | Warns if a pull request is required but CI is not. Fails if the branch is not protected. Warns instead of failing on a private repo, because protection there needs a paid GitHub plan. |
+| `branch-protection` | The default branch, and `develop` if it exists, require a pull request and passing CI before a change is merged. The report shows one line per branch. | Warns if a pull request is required but CI is not. Fails if the branch is not protected. Warns instead of failing on a private repo, because protection there needs a paid GitHub plan. |
 | `ci-on-pr` | A workflow in `.github/workflows/` runs on `pull_request`. | Fails. |
 | `env-tracked` | No `.env` or `.env.*` file is tracked by git. `.env.example` is allowed. | Fails and lists the files. |
 | `env-in-history` | No commit on any branch ever added a `.env` file, even one deleted later. | Fails and lists the file, commit and date. |
