@@ -25,7 +25,12 @@ export async function ciOnPr(): Promise<Result> {
   const workflows = files.filter((file) => /\.ya?ml$/.test(file));
 
   if (workflows.length === 0) {
-    return { id: "ci-on-pr", status: "fail", message: "no workflows in .github/workflows" };
+    return {
+      id: "ci-on-pr",
+      status: "fail",
+      message: "no workflows in .github/workflows",
+      hint: "Add .github/workflows/ci.yml that runs your tests on: pull_request",
+    };
   }
 
   const onPr: string[] = [];
@@ -35,7 +40,12 @@ export async function ciOnPr(): Promise<Result> {
   }
 
   if (onPr.length === 0) {
-    return { id: "ci-on-pr", status: "fail", message: "no workflow runs on pull_request" };
+    return {
+      id: "ci-on-pr",
+      status: "fail",
+      message: "no workflow runs on pull_request",
+      hint: "Add pull_request under on: in the workflow that runs your tests",
+    };
   }
 
   return { id: "ci-on-pr", status: "pass", message: onPr.join(", ") };

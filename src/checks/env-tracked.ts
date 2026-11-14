@@ -23,5 +23,6 @@ export async function envTracked(): Promise<Result> {
     id: "env-tracked",
     status: "fail",
     message: `tracked by git: ${found.join(", ")}`,
+    hint: `From the repo root: git rm --cached ${found.join(" ")}, add it to .gitignore, and rotate its keys`,
   };
 }

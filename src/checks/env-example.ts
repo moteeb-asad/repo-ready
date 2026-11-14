@@ -17,6 +17,7 @@ export async function envExample(): Promise<Result> {
   return {
     id: "env-example",
     status: "warn",
-    message: "no .env.example: add one if the project needs environment variables",
+    message: "no .env.example",
+    hint: "If the project needs environment variables, copy .env to .env.example with the values removed",
   };
 }

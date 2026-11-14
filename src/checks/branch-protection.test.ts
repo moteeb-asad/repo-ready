@@ -11,6 +11,7 @@ describe("judgeBranch", () => {
     expect(judgeBranch({ name: "main", rules: ["pull_request"], classic: false })).toEqual({
       status: "warn",
       text: "main: pull request required, but CI doesn't have to pass",
+      hint: "In the ruleset, turn on Require status checks to pass and add your CI job",
     });
   });
 
@@ -31,6 +32,7 @@ describe("judgeBranch", () => {
     expect(judgeBranch({ name: "main", rules: [], classic: false })).toEqual({
       status: "fail",
       text: "main: not protected, anyone can push to it",
+      hint: "Settings → Rules → Rulesets: require a pull request and passing status checks",
     });
   });
 });
@@ -39,8 +41,19 @@ describe("judge", () => {
   const protectedMain = { name: "main", rules: ["pull_request", "required_status_checks"], classic: false };
   const openDevelop = { name: "develop", rules: [], classic: false };
 
-  it("passes when every branch is protected", () => {
-    expect(judge([protectedMain], false).status).toBe("pass");
+  it("passes when every branch is protected, with no hint", () => {
+    expect(judge([protectedMain], false)).toEqual({
+      id: "branch-protection",
+      status: "pass",
+      message: "main: pull request and passing CI required",
+    });
+  });
+
+  it("uses the hint of the worst branch", () => {
+    const prOnly = { name: "main", rules: ["pull_request"], classic: false };
+    const result = judge([prOnly, openDevelop], false);
+    expect(result.status).toBe("fail");
+    expect(result.hint).toBe("Settings → Rules → Rulesets: require a pull request and passing status checks");
   });
 
   it("fails when any branch is not protected", () => {
@@ -55,5 +68,6 @@ describe("judge", () => {
     const result = judge([openDevelop], true);
     expect(result.status).toBe("warn");
     expect(result.message).toContain("GitHub Pro");
+    expect(result.hint).toBe("Make the repo public, or use GitHub Pro to enforce protection");
   });
 });
