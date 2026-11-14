@@ -9,11 +9,19 @@ const ID = "branch-protection";
 const RANK: Record<Status, number> = { pass: 0, warn: 1, fail: 2 };
 
 export function judgeBranch(branch: BranchState): { status: Status; text: string } {
-  if (branch.rules.includes("pull_request")) {
-    return { status: "pass", text: `${branch.name}: pull request required` };
+  const pr = branch.rules.includes("pull_request");
+  const ci = branch.rules.includes("required_status_checks");
+
+  if (pr && ci) {
+    return { status: "pass", text: `${branch.name}: pull request and passing CI required` };
   }
+  if (pr) {
+    return { status: "warn", text: `${branch.name}: pull request required, but CI doesn't have to pass` };
+  }
+  // Classic protection passes on `protected: true` alone. Its settings (required reviews,
+  // status checks) need admin access to read, so they are not checked.
   if (branch.classic) {
-    return { status: "pass", text: `${branch.name}: protected (classic branch protection)` };
+    return { status: "pass", text: `${branch.name}: classic branch protection, rules not checked` };
   }
   if (branch.rules.length > 0) {
     return { status: "warn", text: `${branch.name}: has rules, but direct pushes are allowed` };
@@ -44,7 +52,7 @@ export async function branchProtection(): Promise<Result> {
   if (!remote) return skipped("origin is not a GitHub repo");
 
   const token = await ghToken();
-  if (!token) return skipped("not logged in to GitHub, run gh auth login");
+  if (!token) return skipped("not logged in to GitHub, run gh auth login or set GITHUB_TOKEN");
 
   // Silence Octokit's own logging: an expected 404 (no develop branch) is not an error.
   const quiet = () => {};

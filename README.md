@@ -56,8 +56,9 @@ It never prints the contents of a `.env` file, and never rewrites git history.
 
 - Node.js 22.12 or newer
 - git
-- [GitHub CLI](https://cli.github.com), logged in with `gh auth login`, for the
-  `branch-protection` check. Without it, that check is skipped and the others still run.
+- For the `branch-protection` check, a GitHub token: the [GitHub CLI](https://cli.github.com)
+  logged in with `gh auth login`, or a `GH_TOKEN` or `GITHUB_TOKEN` environment variable
+  (GitHub Actions sets `GITHUB_TOKEN`). Without one, that check is skipped and the others still run.
 
 ## Planned
 
