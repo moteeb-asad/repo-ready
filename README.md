@@ -33,7 +33,7 @@ CI
 Secrets
   ✓ env-tracked            no .env file is tracked
   ✓ env-in-history         no .env file in git history
-  ✓ secrets-in-code        no API keys or private keys in tracked files
+  ✓ secrets-in-code        no secrets in tracked files
   ! env-example            no .env.example
                            → If the project needs environment variables, copy .env to .env.example with the values removed
 
@@ -84,7 +84,7 @@ Update with `npm update -g check-repo-ready`, remove with `npm uninstall -g chec
 | `ci-on-pr` | A workflow in `.github/workflows/` runs on `pull_request`. | Fails. |
 | `env-tracked` | No `.env` or `.env.*` file is tracked by git. `.env.example` is allowed. | Fails and lists the files. |
 | `env-in-history` | No commit on any branch ever added a `.env` file, even one deleted later. | Fails and lists the file, commit and date. |
-| `secrets-in-code` | No tracked file contains an API key or private key in a well-known format: OpenAI, Anthropic, AWS, GitHub, Slack, Stripe live, Google, or a `PRIVATE KEY` block. Placeholders like `sk-xxxx` are ignored. | Fails and lists the file, line and key type. The key itself is never shown. |
+| `secrets-in-code` | No tracked file contains a secret: API keys in a well-known format (OpenAI, Anthropic, AWS, GitHub, Slack, Stripe live, Google, Supabase, SendGrid, npm, Hugging Face, Groq, Resend), a `PRIVATE KEY` block, a database URL with a real password, or a Supabase service-role key. Placeholders, `localhost` URLs and the public Supabase `anon` key are ignored. | Fails and lists the file, line and type. Warns when a variable named like a secret (`JWT_SECRET`, `password`, `apiKey`) is set to a literal value, outside tests and docs. The value is never shown. |
 | `env-example` | A `.env.example` is tracked anywhere in the repo. | Warns. Projects without environment variables don't need one. |
 | `readme` | A README at the repo root shows how to install or run the project, for example `npm install` or `docker compose up`. | Fails. |
 
