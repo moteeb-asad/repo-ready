@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findReadme, hasRunSteps } from "./readme.js";
+import { defaultTemplate, findReadme, hasRunSteps } from "./readme.js";
 
 describe("findReadme", () => {
   it("finds README.md at the root", () => {
@@ -43,5 +43,38 @@ describe("hasRunSteps", () => {
 
   it("does not match a command name inside a word", () => {
     expect(hasRunSteps("# gopher\n\nmakefile notes\n")).toBe(false);
+  });
+});
+
+describe("defaultTemplate", () => {
+  it("recognises untouched generator READMEs", () => {
+    expect(
+      defaultTemplate("# React + TypeScript + Vite\n\nThis template provides a minimal setup to get React working in Vite with HMR"),
+    ).toBe("Vite");
+    expect(
+      defaultTemplate(
+        "# Getting Started with Create React App\n\nThis project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).\n\n### `npm start`",
+      ),
+    ).toBe("Create React App");
+    expect(
+      defaultTemplate(
+        "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs).\n\n```bash\nnpm run dev\n```",
+      ),
+    ).toBe("Next.js");
+    expect(defaultTemplate("# Welcome to your Expo app\n\nThis is an [Expo](https://expo.dev) project created with")).toBe(
+      "Expo",
+    );
+    expect(defaultTemplate("# MyApp\n\nThis project was generated using [Angular CLI](https://github.com/angular)")).toBe(
+      "Angular CLI",
+    );
+  });
+
+  it("passes a README that starts with the project's own text", () => {
+    const own = "# Lead Followup\n\nTracks leads and sends reminders.\n\n".padEnd(700, "More about the app. ");
+    expect(defaultTemplate(`${own}\nThis project was bootstrapped with [Create React App](https://x).`)).toBeUndefined();
+  });
+
+  it("returns undefined for a normal README", () => {
+    expect(defaultTemplate("# my-app\n\n```bash\nnpm install\nnpm run dev\n```")).toBeUndefined();
   });
 });
