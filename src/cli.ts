@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { execa } from "execa";
 import { branches } from "./checks/branches/index.js";
 import { ci } from "./checks/ci/index.js";
+import { history } from "./checks/history/index.js";
 import { readmeGroup } from "./checks/readme/index.js";
 import { secrets } from "./checks/secrets/index.js";
 import { currentBranch, defaultBranch } from "./git.js";
@@ -35,7 +36,7 @@ program
     const note = main && branch !== main ? `checked ${branch}, not ${main}. Run on ${main} to see what visitors see` : undefined;
 
     // Report sections, in print order. Each lives in its own folder under src/checks/.
-    await run([branches, ci, secrets, readmeGroup], { title: `${repo} (${branch})`, note });
+    await run([branches, ci, history, secrets, readmeGroup], { title: `${repo} (${branch})`, note });
   });
 
 await program.parseAsync();

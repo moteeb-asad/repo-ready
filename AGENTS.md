@@ -129,7 +129,8 @@ src/
   checks/
     branches/        index.ts  branch-protection.ts
     ci/              index.ts  ci-on-pr.ts
-    secrets/         index.ts  env-tracked.ts  env-in-history.ts  env-example.ts
+    history/         index.ts  commit-messages.ts
+    secrets/         index.ts  env-tracked.ts  env-in-history.ts  secrets-in-code.ts  secrets-logged.ts  env-example.ts
     readme/          index.ts  readme.ts
 ```
 
@@ -201,6 +202,7 @@ Build the smallest thing that solves the task. Nothing more.
 - CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
 - Rulesets: "Protect main branch" (`main`) and "Protect develop" (`develop`). Both require a pull request and a passing `check`, block force pushes and deletion. Only `develop` requires branches to be up to date: `main` only takes pull requests from `develop`, and CI already tests the merge result, so on `main` it would only force a back-merge after every release. `main` allows merge commits only.
 - Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
-- Checks built: `branch-protection`, `ci-on-pr`, `env-tracked`, `env-in-history`, `env-example`, `readme`. The report is grouped by section, with a fix hint under each warning and failure.
+- Checks built: `branch-protection`, `ci-on-pr`, `commit-messages`, `env-tracked`, `env-in-history`, `secrets-in-code`, `secrets-logged`, `env-example`, `readme`. The report is grouped by section, shows the checked branch, and has a fix hint under each warning and failure.
 - Roadmap and progress: private GitHub project "repo-ready roadmap" (Version and Priority fields).
-- Next (v0.1.0): `secrets-in-code`, then `commit-messages` and `direct-pushes` (new History group), then `ci-green`.
+- Tested against other people's repos (blobless clones in `C:\dev\tests\repo-ready-tests`); false alarms found there are fixed before new checks.
+- Next (v0.1.0): `direct-pushes` (History group), then `ci-green`.
