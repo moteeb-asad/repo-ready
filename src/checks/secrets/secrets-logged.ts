@@ -98,6 +98,6 @@ export async function secretsLogged(): Promise<Result> {
     id: "secrets-logged",
     status: "warn",
     message: `${shown.join(", ")}${more}`,
-    hint: "Remove the log, or log only whether the value is set, e.g. Boolean(process.env.API_KEY)",
+    hint: "Remove the log, or log only whether the value is set, e.g. Boolean(value)",
   };
 }
