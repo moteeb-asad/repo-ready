@@ -2,9 +2,21 @@ import { describe, expect, it } from "vitest";
 import { judge, judgeBranch } from "./branch-protection.js";
 
 describe("judgeBranch", () => {
-  it("passes when a ruleset requires a pull request", () => {
-    const rules = ["deletion", "non_fast_forward", "pull_request"];
+  it("passes when a ruleset requires a pull request and passing CI", () => {
+    const rules = ["deletion", "non_fast_forward", "pull_request", "required_status_checks"];
     expect(judgeBranch({ name: "main", rules, classic: false }).status).toBe("pass");
+  });
+
+  it("warns when a pull request is required but CI is not", () => {
+    expect(judgeBranch({ name: "main", rules: ["pull_request"], classic: false })).toEqual({
+      status: "warn",
+      text: "main: pull request required, but CI doesn't have to pass",
+    });
+  });
+
+  it("does not pass on required CI alone", () => {
+    const rules = ["required_status_checks"];
+    expect(judgeBranch({ name: "main", rules, classic: false }).status).toBe("warn");
   });
 
   it("passes with classic branch protection only", () => {
@@ -24,7 +36,7 @@ describe("judgeBranch", () => {
 });
 
 describe("judge", () => {
-  const protectedMain = { name: "main", rules: ["pull_request"], classic: false };
+  const protectedMain = { name: "main", rules: ["pull_request", "required_status_checks"], classic: false };
   const openDevelop = { name: "develop", rules: [], classic: false };
 
   it("passes when every branch is protected", () => {
@@ -34,7 +46,9 @@ describe("judge", () => {
   it("fails when any branch is not protected", () => {
     const result = judge([protectedMain, openDevelop], false);
     expect(result.status).toBe("fail");
-    expect(result.message).toBe("main: pull request required; develop: not protected, anyone can push to it");
+    expect(result.message).toBe(
+      "main: pull request and passing CI required; develop: not protected, anyone can push to it",
+    );
   });
 
   it("warns instead of failing on a private repo", () => {
