@@ -1,6 +1,6 @@
 import { posix } from "node:path";
-import { execa } from "execa";
-import type { Result } from "../runner.js";
+import { trackedFiles } from "../../git.js";
+import type { Result } from "../../types.js";
 
 const ENV_FILE = /^\.env(\..+)?$/;
 
@@ -12,8 +12,7 @@ export function findEnvFiles(files: string[]): string[] {
 }
 
 export async function envTracked(): Promise<Result> {
-  const { stdout } = await execa("git", ["ls-files", "--full-name", ":/"], { lines: true });
-  const found = findEnvFiles(stdout);
+  const found = findEnvFiles(await trackedFiles());
 
   if (found.length === 0) {
     return { id: "env-tracked", status: "pass", message: "no .env file is tracked" };

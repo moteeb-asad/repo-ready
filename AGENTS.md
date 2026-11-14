@@ -101,34 +101,48 @@ repo-ready  owner/my-project
 
 ## Architecture
 
-One command, many small checks. Each check is one file and returns the same shape:
+One command, many small checks. Each check is one file and returns one result, or one per
+item it looks at (e.g. per branch):
 
 ```ts
 type Result = {
-  id: string;                  // "main-protected"
+  id: string;                  // "branch-protection"
+  label?: string;              // shown instead of the id, e.g. "main"
   status: "pass" | "warn" | "fail";
-  message: string;             // "main has no active ruleset"
+  message: string;             // "not protected, anyone can push to it"
+  hint?: string;               // what to do, printed as "→ ..." under a warn or fail
   fix?: () => Promise<void>;
 };
 ```
 
-Adding a check means adding one file. The runner, the report and `--fix` stay the same.
+Checks are grouped by report section. Each section is a folder under `src/checks/` with an
+`index.ts` that exports `{ name, checks }`. The runner prints sections in the order `cli.ts`
+lists them.
 
 ```
 src/
-  cli.ts             commands and flags
-  runner.ts          runs checks, prints report, sets exit code
-  context.ts         owner/repo, default branch, GitHub client, git helpers
+  cli.ts             commands and flags; lists the groups in print order
+  types.ts           Result, Check and Group: the contract between checks and the runner
+  runner.ts          runs checks, prints the report
+  git.ts             shared git helpers: trackedFiles(), readTracked()
+  github.ts          owner/repo from origin, token (GH_TOKEN, GITHUB_TOKEN, gh auth token)
   checks/
-    branch-protection.ts
-    ci-on-pr.ts
-    ci-green.ts
-    env-tracked.ts
-    env-in-history.ts
-    env-example.ts
-    commit-messages.ts
-    readme.ts
+    branches/        index.ts  branch-protection.ts
+    ci/              index.ts  ci-on-pr.ts
+    secrets/         index.ts  env-tracked.ts  env-in-history.ts  env-example.ts
+    readme/          index.ts  readme.ts
 ```
+
+Each check has a test file next to it (`env-tracked.test.ts`).
+
+- **Add a check:** add the file (and its test) to its group folder, then add it to that folder's
+  `index.ts`. `cli.ts` and the runner stay the same.
+- **Add a group:** add a folder with an `index.ts`, then add the group to the list in `cli.ts`.
+- **Shared code:** git calls used by more than one check go in `git.ts`, GitHub API setup in
+  `github.ts`. Code used by one check stays in that check.
+- **Types:** a type lives in the file that uses it. Checks import `Result` and `Group` from
+  `types.ts`, never from `runner.ts`. When two checks in one group share a type, it moves to
+  that group's `types.ts` (e.g. `src/checks/secrets/types.ts`). No per-folder `types.ts` until then.
 
 ## Stack
 
@@ -182,10 +196,11 @@ Build the smallest thing that solves the task. Nothing more.
 
 - Repo created: public, `moteeb-asad/repo-ready`, with MIT license and Node `.gitignore`.
 - `develop` branch created.
-- Packages installed: commander, @octokit/rest, execa, picocolors, typescript, tsup, vitest, @types/node.
-- README written with "Early, in progress".
+- Packages installed: commander, @octokit/rest, execa, picocolors, yaml, typescript, tsup, vitest, @types/node.
+- Published on npm as `check-repo-ready` (the name `repo-ready` was blocked as too similar to `repoready`). The installed command is `repo-ready`. Latest release: `0.0.3`, with a GitHub release per version.
 - CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
 - Rulesets: "Protect main branch" (`main`) and "Protect develop" (`develop`). Both require a pull request and a passing `check`, block force pushes and deletion. Only `develop` requires branches to be up to date: `main` only takes pull requests from `develop`, and CI already tests the merge result, so on `main` it would only force a back-merge after every release. `main` allows merge commits only.
 - Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
-- `src/cli.ts` is a placeholder. No checks yet.
-- Next: build `env-tracked` first (local only) to set up the `Result` type, runner and report. Then `branch-protection`, which adds `context.ts` and the GitHub API.
+- Checks built: `branch-protection`, `ci-on-pr`, `env-tracked`, `env-in-history`, `env-example`, `readme`. The report is grouped by section, with a fix hint under each warning and failure.
+- Roadmap and progress: private GitHub project "repo-ready roadmap" (Version and Priority fields).
+- Next (v0.1.0): `secrets-in-code`, then `commit-messages` and `direct-pushes` (new History group), then `ci-green`.

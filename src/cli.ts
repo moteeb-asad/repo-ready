@@ -2,13 +2,11 @@
 import { basename } from "node:path";
 import { Command } from "commander";
 import { execa } from "execa";
-import { envExample } from "./checks/env-example.js";
-import { envInHistory } from "./checks/env-in-history.js";
-import { branchProtection } from "./checks/branch-protection.js";
-import { ciOnPr } from "./checks/ci-on-pr.js";
-import { envTracked } from "./checks/env-tracked.js";
-import { readme } from "./checks/readme.js";
-import { githubRemote } from "./context.js";
+import { branches } from "./checks/branches/index.js";
+import { ci } from "./checks/ci/index.js";
+import { readmeGroup } from "./checks/readme/index.js";
+import { secrets } from "./checks/secrets/index.js";
+import { githubRemote } from "./github.js";
 import { run } from "./runner.js";
 
 const program = new Command();
@@ -29,15 +27,8 @@ program
     const top = await execa("git", ["rev-parse", "--show-toplevel"]);
     const repo = remote?.repo ?? basename(top.stdout);
 
-    await run(
-      {
-        Branches: [branchProtection],
-        CI: [ciOnPr],
-        Secrets: [envTracked, envInHistory, envExample],
-        README: [readme],
-      },
-      repo,
-    );
+    // Report sections, in print order. Each lives in its own folder under src/checks/.
+    await run([branches, ci, secrets, readmeGroup], repo);
   });
 
 await program.parseAsync();
