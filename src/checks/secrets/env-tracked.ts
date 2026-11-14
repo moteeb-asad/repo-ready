@@ -1,6 +1,6 @@
 import { posix } from "node:path";
 import { trackedFiles } from "../../git.js";
-import type { Result } from "../../runner.js";
+import type { Result } from "../../types.js";
 
 const ENV_FILE = /^\.env(\..+)?$/;
 

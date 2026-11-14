@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import { ghToken, githubRemote } from "../../github.js";
-import type { Result } from "../../runner.js";
+import type { Result } from "../../types.js";
 
 type Status = Result["status"];
 export type BranchState = { name: string; rules: string[]; classic: boolean };

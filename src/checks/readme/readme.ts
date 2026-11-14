@@ -1,5 +1,5 @@
 import { readTracked, trackedFiles } from "../../git.js";
-import type { Result } from "../../runner.js";
+import type { Result } from "../../types.js";
 
 const README = /^readme(\.(md|markdown|txt|rst))?$/i;
 

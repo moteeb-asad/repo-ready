@@ -1,4 +1,4 @@
-import type { Group } from "../../runner.js";
+import type { Group } from "../../types.js";
 import { envExample } from "./env-example.js";
 import { envInHistory } from "./env-in-history.js";
 import { envTracked } from "./env-tracked.js";

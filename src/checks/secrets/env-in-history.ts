@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import type { Result } from "../../runner.js";
+import type { Result } from "../../types.js";
 import { findEnvFiles } from "./env-tracked.js";
 
 type Found = { file: string; commit: string; when: string };

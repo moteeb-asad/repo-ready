@@ -1,25 +1,11 @@
 import pc from "picocolors";
-
-export type Result = {
-  id: string;
-  label?: string; // shown instead of the id, e.g. a branch name
-  status: "pass" | "warn" | "fail";
-  message: string;
-  hint?: string; // what to do about a warning or failure
-  fix?: () => Promise<void>;
-};
-
-// A check returns one result, or one per item it looks at (e.g. per branch).
-export type Check = () => Promise<Result | Result[]>;
+import type { Group, Result } from "./types.js";
 
 const icons = {
   pass: pc.green("✓"),
   warn: pc.yellow("!"),
   fail: pc.red("✗"),
 };
-
-// A report section. Each folder in src/checks/ exports one from its index.ts.
-export type Group = { name: string; checks: Check[] };
 
 export async function run(groups: Group[], repo: string): Promise<Result[]> {
   // Run every check at once, then print in group order.

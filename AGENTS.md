@@ -122,7 +122,8 @@ lists them.
 ```
 src/
   cli.ts             commands and flags; lists the groups in print order
-  runner.ts          Result, Check and Group types; runs checks, prints the report
+  types.ts           Result, Check and Group: the contract between checks and the runner
+  runner.ts          runs checks, prints the report
   git.ts             shared git helpers: trackedFiles(), readTracked()
   github.ts          owner/repo from origin, token (GH_TOKEN, GITHUB_TOKEN, gh auth token)
   checks/
@@ -139,6 +140,9 @@ Each check has a test file next to it (`env-tracked.test.ts`).
 - **Add a group:** add a folder with an `index.ts`, then add the group to the list in `cli.ts`.
 - **Shared code:** git calls used by more than one check go in `git.ts`, GitHub API setup in
   `github.ts`. Code used by one check stays in that check.
+- **Types:** a type lives in the file that uses it. Checks import `Result` and `Group` from
+  `types.ts`, never from `runner.ts`. When two checks in one group share a type, it moves to
+  that group's `types.ts` (e.g. `src/checks/secrets/types.ts`). No per-folder `types.ts` until then.
 
 ## Stack
 

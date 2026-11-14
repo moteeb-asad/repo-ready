@@ -1,6 +1,6 @@
 import { parse } from "yaml";
 import { readTracked, trackedFiles } from "../../git.js";
-import type { Result } from "../../runner.js";
+import type { Result } from "../../types.js";
 
 export function runsOnPullRequest(workflow: string): boolean {
   let on: unknown;
