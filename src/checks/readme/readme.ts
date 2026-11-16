@@ -3,9 +3,10 @@ import type { Result } from "../../types.js";
 
 const README = /^readme(\.(md|markdown|txt|rst))?$/i;
 
-// A line (or inline code) that starts with a common install or run command.
+// A line (or inline code) that starts with a common install or run command:
+// language tools, then installers (brew install, curl ... | bash, winget, scoop).
 const RUN_STEP =
-  /(^|`)\s*(\$\s*)?(npm|npx|pnpm|yarn|bun|pip|pipx|python3?|uv|poetry|docker|docker-compose|make|go|cargo|deno|dotnet|mvn|gradle)\s/m;
+  /(^|`)\s*(\$\s*)?(npm|npx|pnpm|pnpx|yarn|bun|bunx|pip3?|pipx|python3?|uv|poetry|docker|docker-compose|make|go|cargo|deno|dotnet|mvn|gradle|brew|curl|wget|apt|apt-get|winget|scoop|choco)\s/m;
 
 export function findReadme(files: string[]): string | undefined {
   return files.find((file) => !file.includes("/") && README.test(file));
