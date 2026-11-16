@@ -1,5 +1,4 @@
-import { Octokit } from "@octokit/rest";
-import { ghToken, githubRemote } from "../../github.js";
+import { apiSkipReason, ghToken, githubClient, githubRemote } from "../../github.js";
 import type { Result } from "../../types.js";
 
 type Status = Result["status"];
@@ -73,9 +72,8 @@ export async function branchProtection(): Promise<Result | Result[]> {
   const token = await ghToken();
   if (!token) return skipped("not logged in to GitHub", "Run gh auth login, or set GITHUB_TOKEN");
 
-  // Silence Octokit's own logging: an expected 404 (no develop branch) is not an error.
-  const quiet = () => {};
-  const octokit = new Octokit({ auth: token, log: { debug: quiet, info: quiet, warn: quiet, error: quiet } });
+  // The client stays quiet about the expected 404 when there is no develop branch.
+  const octokit = githubClient(token);
 
   try {
     const { data: repo } = await octokit.rest.repos.get(remote);
@@ -98,6 +96,6 @@ export async function branchProtection(): Promise<Result | Result[]> {
 
     return judge(branches, repo.private);
   } catch (error) {
-    return skipped(`GitHub API error: ${(error as Error).message}`);
+    return skipped(apiSkipReason(error, remote));
   }
 }
