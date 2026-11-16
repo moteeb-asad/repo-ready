@@ -204,7 +204,7 @@ Build the smallest thing that solves the task. Nothing more.
 - Repo created: public, `moteeb-asad/repo-ready`, with MIT license and Node `.gitignore`.
 - `develop` branch created.
 - Packages installed: commander, @octokit/rest, execa, picocolors, yaml, typescript, tsup, vitest, @types/node.
-- Published on npm as `check-repo-ready` (the name `repo-ready` was blocked as too similar to `repoready`). The installed command is `repo-ready`. Latest release: `0.0.3`, with a GitHub release per version.
+- Published on npm as `check-repo-ready` (the name `repo-ready` was blocked as too similar to `repoready`). The installed command is `repo-ready`. Latest release: `0.1.0`, with a GitHub release per version.
 - CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
 - Rulesets: "Protect main branch" (`main`) and "Protect develop" (`develop`). Both require a pull request and a passing `check`, block force pushes and deletion. Only `develop` requires branches to be up to date: `main` only takes pull requests from `develop`, and CI already tests the merge result, so on `main` it would only force a back-merge after every release. `main` allows merge commits only.
 - Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
