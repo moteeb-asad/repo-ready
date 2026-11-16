@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { findSecrets } from "./secrets-in-code.js";
+import { type GrepMatch, parseGrepLine } from "../../../git.js";
+import { findSecrets as findInMatches } from "./secrets-in-code.js";
+
+// Test cases are written as git grep output lines: "<file>:<line>:<content>".
+const findSecrets = (lines: string[]) => findInMatches(lines.map(parseGrepLine) as GrepMatch[]);
 
 // Fake secrets are built from parts (or encoded at runtime) so this file never contains
 // a full secret pattern. Otherwise repo-ready would flag its own tests.

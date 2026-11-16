@@ -1,7 +1,6 @@
 import { posix } from "node:path";
-import { execa } from "execa";
-import { trackedFiles } from "../../git.js";
-import type { Result } from "../../types.js";
+import { type GrepMatch, grepTracked, trackedFiles } from "../../../git.js";
+import type { Result } from "../../../types.js";
 
 // Reads of a named env variable: Node, Vite, Bun, Deno, Python.
 const ENV_READ =
@@ -36,16 +35,14 @@ function isOptional(m: RegExpMatchArray, line: string, name: string): boolean {
   return /^\s*,/.test(rest) || !LOOKS_REQUIRED.test(name);
 }
 
-// `lines` is git grep output: "<file>:<content>". Returns the env variables the project needs:
-// read somewhere without a default, and not set by the runtime.
-export function envVarNames(lines: string[]): string[] {
+// Returns the env variables the project needs: read somewhere without a default, and not set by the runtime.
+export function envVarNames(matches: GrepMatch[]): string[] {
   const required = new Set<string>();
-  for (const raw of lines) {
-    const match = raw.match(/^(.+?):(.*)$/);
-    if (!match?.[1] || match[2] === undefined || NOT_CODE.test(match[1])) continue;
-    for (const m of match[2].matchAll(ENV_READ)) {
+  for (const { file, content } of matches) {
+    if (NOT_CODE.test(file)) continue;
+    for (const m of content.matchAll(ENV_READ)) {
       const name = m.slice(1).find(Boolean);
-      if (name && !RUNTIME.has(name) && !isOptional(m, match[2], name)) required.add(name);
+      if (name && !RUNTIME.has(name) && !isOptional(m, content, name)) required.add(name);
     }
   }
   return [...required];
@@ -57,12 +54,7 @@ export async function envExample(): Promise<Result> {
     return { id: "env-example", status: "pass", message: found };
   }
 
-  // Exit code 1 means no match.
-  const grep = await execa("git", ["grep", "--cached", "-I", "--full-name", "-E", GREP, "--", ":/"], {
-    lines: true,
-    reject: false,
-  });
-  const names = envVarNames(grep.stdout);
+  const names = envVarNames(await grepTracked(GREP));
   if (names.length === 0) {
     return { id: "env-example", status: "pass", message: "not needed: the code reads no project env variables" };
   }
