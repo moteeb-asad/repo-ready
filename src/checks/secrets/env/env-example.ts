@@ -40,6 +40,8 @@ export function envVarNames(matches: GrepMatch[]): string[] {
   const required = new Set<string>();
   for (const { file, content } of matches) {
     if (NOT_CODE.test(file)) continue;
+    // A comment line describes code, it doesn't run it: // JS, # Python, /* and * block comments.
+    if (/^\s*(\/\/|#|\/\*|\*)/.test(content)) continue;
     for (const m of content.matchAll(ENV_READ)) {
       const name = m.slice(1).find(Boolean);
       if (name && !RUNTIME.has(name) && !isOptional(m, content, name)) required.add(name);
