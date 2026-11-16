@@ -1,6 +1,6 @@
-import { posix } from "node:path";
 import { type GrepMatch, grepTracked, trackedFiles } from "../../../git.js";
 import type { Result } from "../../../types.js";
+import { DOCS_PATH, isEnvExample, TEST_PATH, VENDOR_PATH } from "../paths.js";
 
 // Reads of a named env variable: Node, Vite, Bun, Deno, Python.
 const ENV_READ =
@@ -9,10 +9,14 @@ const GREP = "process\\.env|import\\.meta\\.env|Bun\\.env|Deno\\.env|os\\.enviro
 
 // Set by the runtime or the platform, not by the project: no .env.example needed for these.
 const RUNTIME = new Set(["PORT", "HOST", "NODE_ENV", "CI", "DEBUG", "HOME", "PATH", "PWD", "TZ", "LANG", "MODE", "DEV", "PROD", "SSR", "BASE_URL"]);
-const NOT_CODE = /\.(md|markdown|txt|rst)$|(^|\/)\.gitignore$|(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$|\.(test|spec)\.|__tests__\//i;
+// Env reads in tests, docs, vendored code and .gitignore are not the project's own config.
+function notProjectCode(file: string): boolean {
+  return TEST_PATH.test(file) || DOCS_PATH.test(file) || VENDOR_PATH.test(file) || /(^|\/)\.gitignore$/.test(file);
+}
 
+// .env.example, or a variant like .env.local.example, .env.sample or .env.template.
 export function findEnvExample(files: string[]): string | undefined {
-  return files.find((file) => posix.basename(file) === ".env.example");
+  return files.find(isEnvExample);
 }
 
 // Names of config an app usually cannot run without.
@@ -39,7 +43,7 @@ function isOptional(m: RegExpMatchArray, line: string, name: string): boolean {
 export function envVarNames(matches: GrepMatch[]): string[] {
   const required = new Set<string>();
   for (const { file, content } of matches) {
-    if (NOT_CODE.test(file)) continue;
+    if (notProjectCode(file)) continue;
     // A comment line describes code, it doesn't run it: // JS, # Python, /* and * block comments.
     if (/^\s*(\/\/|#|\/\*|\*)/.test(content)) continue;
     for (const m of content.matchAll(ENV_READ)) {

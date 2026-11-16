@@ -26,6 +26,12 @@ describe("findEnvExample", () => {
   it("ignores names that only start with .env.example", () => {
     expect(findEnvExample([".env.example.bak"])).toBeUndefined();
   });
+
+  it("accepts variants: .env.sample, .env.template, .env.local.example", () => {
+    expect(findEnvExample(["README.md", ".env.sample"])).toBe(".env.sample");
+    expect(findEnvExample(["config/.env.template"])).toBe("config/.env.template");
+    expect(findEnvExample([".env.local.example"])).toBe(".env.local.example");
+  });
 });
 
 describe("envVarNames", () => {
@@ -58,6 +64,8 @@ describe("envVarNames", () => {
         'src/db.test.ts:process.env.DATABASE_URL = "x"',
         "package-lock.json:process.env.FOO",
         ".gitignore:# process.env.BAR",
+        'tests/ci/test_publisher.py:version = os.environ["MCP_SDK_VERSION"]',
+        "docs/setup.mdx:const url = process.env.API_URL;",
       ]),
     ).toEqual([]);
   });
