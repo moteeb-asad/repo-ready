@@ -34,6 +34,12 @@ describe("apiSkipReason", () => {
     );
   });
 
+  it("explains a network failure", () => {
+    for (const message of ["connect ENETUNREACH 20.207.73.85:443", "getaddrinfo ENOTFOUND api.github.com", "fetch failed"]) {
+      expect(apiSkipReason(new Error(message), remote), message).toBe("could not reach GitHub, check your internet connection");
+    }
+  });
+
   it("explains a rate limit", () => {
     expect(apiSkipReason(new Error("API rate limit exceeded for 1.2.3.4."), remote)).toBe(
       "GitHub API rate limit reached, try again later",

@@ -20,6 +20,9 @@ export function githubClient(token: string): Octokit {
 export function apiSkipReason(error: unknown, remote: GitHubRepo): string {
   const message = String((error as Error)?.message ?? error);
   if (/aborted|timed? ?out/i.test(message)) return `GitHub did not answer within ${TIMEOUT_SECONDS} seconds`;
+  if (/ENETUNREACH|ENOTFOUND|ECONNRESET|ECONNREFUSED|EAI_AGAIN|fetch failed/i.test(message)) {
+    return "could not reach GitHub, check your internet connection";
+  }
   if (/rate limit/i.test(message)) return "GitHub API rate limit reached, try again later";
   if (/Could not resolve to a Repository|^Not Found/i.test(message)) {
     return `${remote.owner}/${remote.repo} not found on GitHub, or this token has no access to it`;
