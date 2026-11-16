@@ -1,6 +1,6 @@
-import { execa } from "execa";
 import { parse } from "yaml";
-import type { Result } from "../runner.js";
+import { readTracked, trackedFiles } from "../../git.js";
+import type { Result } from "../../types.js";
 
 export function runsOnPullRequest(workflow: string): boolean {
   let on: unknown;
@@ -17,11 +17,7 @@ export function runsOnPullRequest(workflow: string): boolean {
 }
 
 export async function ciOnPr(): Promise<Result> {
-  const { stdout: files } = await execa(
-    "git",
-    ["ls-files", "--full-name", ":/.github/workflows/"],
-    { lines: true },
-  );
+  const files = await trackedFiles(".github/workflows/");
   const workflows = files.filter((file) => /\.ya?ml$/.test(file));
 
   if (workflows.length === 0) {
@@ -35,8 +31,7 @@ export async function ciOnPr(): Promise<Result> {
 
   const onPr: string[] = [];
   for (const file of workflows) {
-    const { stdout } = await execa("git", ["show", `:${file}`]);
-    if (runsOnPullRequest(stdout)) onPr.push(file);
+    if (runsOnPullRequest(await readTracked(file))) onPr.push(file);
   }
 
   if (onPr.length === 0) {

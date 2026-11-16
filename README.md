@@ -21,7 +21,7 @@ npx check-repo-ready
 ```
 
 ```
-check-repo-ready  repo-ready
+check-repo-ready  repo-ready (main)
 
 Branches
   ✓ main                   pull request and passing CI required
@@ -30,19 +30,27 @@ Branches
 CI
   ✓ ci-on-pr               .github/workflows/ci.yml
 
+History
+  ✓ commit-messages        all 43 recent commits say what changed
+  ✓ direct-pushes          all 7 commits on main since the first pull request came through pull requests (2 direct pushes before that)
+
 Secrets
   ✓ env-tracked            no .env file is tracked
   ✓ env-in-history         no .env file in git history
-  ! env-example            no .env.example
-                           → If the project needs environment variables, copy .env to .env.example with the values removed
+  ✓ secrets-in-code        no secrets in tracked files
+  ✓ secrets-logged         no secrets written to logs
+  ✓ env-example            not needed: the code reads no project env variables
 
 README
   ✓ readme                 README.md has setup or run steps
 
-0 problems, 1 warning
+0 problems, 0 warnings
 ```
 
 `✓` passed, `!` warning, `✗` problem. Each warning and problem has a `→` line that says what to do.
+
+The file checks read the branch you have checked out (shown in the header). On any other branch
+than the default one, the report says so: run it on the default branch to see what visitors see.
 
 ## Installation
 
@@ -81,10 +89,14 @@ Update with `npm update -g check-repo-ready`, remove with `npm uninstall -g chec
 |---|---|---|
 | `branch-protection` | The default branch, and `develop` if it exists, require a pull request and passing CI before a change is merged. The report shows one line per branch. | Warns if a pull request is required but CI is not. Fails if the branch is not protected. Warns instead of failing on a private repo, because protection there needs a paid GitHub plan. |
 | `ci-on-pr` | A workflow in `.github/workflows/` runs on `pull_request`. | Fails. |
+| `commit-messages` | The last 50 commits (merges excluded) say what changed. Vague: one word (`update`, `wip`), only generic words (`minor changes`, `fix bug`), or GitHub's web editor default (`Update index.html`, `Add files via upload`). Conventional Commits prefixes are fine; the text after them is judged. The first commit (`init`, `Initial commit`) is fine. | Warns when 20% or more are vague, fails at 50%, and quotes up to 3. A single vague commit is ignored. |
+| `direct-pushes` | The last 30 commits that landed on the default branch on GitHub came through pull requests (merge, squash or rebase). Only commits since the first pull request count, so direct pushes while setting up a repo don't. Commits inside a merged branch are not counted. | Warns when 20% or more were pushed directly, fails at 50%, and says when the latest one was. A single direct push is ignored. Skipped without a GitHub token. |
 | `env-tracked` | No `.env` or `.env.*` file is tracked by git. `.env.example` is allowed. | Fails and lists the files. |
 | `env-in-history` | No commit on any branch ever added a `.env` file, even one deleted later. | Fails and lists the file, commit and date. |
-| `env-example` | A `.env.example` is tracked anywhere in the repo. | Warns. Projects without environment variables don't need one. |
-| `readme` | A README at the repo root shows how to install or run the project, for example `npm install` or `docker compose up`. | Fails. |
+| `secrets-in-code` | No tracked file contains a secret: API keys in a well-known format (OpenAI, Anthropic, AWS, GitHub, Slack, Stripe live, Google, Supabase, SendGrid, npm, Hugging Face, Groq, Resend), a `PRIVATE KEY` block, a database URL with a real password, or a Supabase service-role key. Placeholders, `localhost` URLs and the public Supabase `anon` key are ignored. | Fails and lists the file, line and type. Warns when a variable named like a secret (`JWT_SECRET`, `password`, `apiKey`) is set to a literal value, outside tests and docs. The value is never shown. |
+| `secrets-logged` | No log call (`console.*`, `print`, `logger.*`, `logging.*`) prints a secret env variable (`process.env.JWT_SECRET`, `os.getenv("DB_PASSWORD")`) or a variable named like a secret (`token`, `user.password`, `apiKey`). Logging whether it is set (`Boolean(...)`, `!!x`, `.length`) is fine. Test files are skipped. | Warns and lists the file and line. |
+| `env-example` | A `.env.example` is tracked anywhere in the repo, or the code needs no project env variables. Runtime ones like `PORT` and `NODE_ENV` don't count, and neither do reads with a default (`process.env.X \|\| "3000"`, `os.getenv("X", "info")`). In Python, a bare `os.environ.get("X")` counts only for names like `API_KEY` or `DATABASE_URL`; `os.environ["X"]` always counts. | Warns and names the variables the code reads, e.g. `JWT_SECRET, MONGODB_URI`. |
+| `readme` | A README at the repo root shows how to install or run the project, for example `npm install` or `docker compose up`, and is not an untouched generator README (Vite, Create React App, Next.js, Expo, Angular, SvelteKit). | Fails. |
 
 Branches with classic branch protection pass without their settings being checked, because
 reading those settings needs admin access.
@@ -108,7 +120,6 @@ A `--ci` flag that exits with `1` when a check fails is planned.
 ## Roadmap
 
 - `ci-green` check: the last CI run on the default branch passed
-- `commit-messages` check: recent commit messages say what changed
 - `--json` output for scripts and AI agents, and `--ci` for exit codes
 - `repo-ready explain <check>`: what a problem means and how to fix it
 - `--fix`: fix what can be fixed (a ruleset, a CI workflow, `.env.example`), always through a
@@ -143,7 +154,8 @@ npm link        # makes your local build available as `repo-ready`
 
 - Branch from `develop` and open the pull request into `develop`.
 - Use [Conventional Commits](https://www.conventionalcommits.org): `feat(checks): add ci-green check`.
-- Each check is one file in `src/checks/`, with a test file next to it that covers the failure case.
+- Each check is one file in its report section's folder (`src/checks/secrets/`, ...), with a test
+  file next to it that covers the failure case. Add it to that folder's `index.ts`.
 - Design decisions are recorded in [`docs/decisions/`](docs/decisions).
 
 ## License

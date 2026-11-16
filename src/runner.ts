@@ -1,16 +1,5 @@
 import pc from "picocolors";
-
-export type Result = {
-  id: string;
-  label?: string; // shown instead of the id, e.g. a branch name
-  status: "pass" | "warn" | "fail";
-  message: string;
-  hint?: string; // what to do about a warning or failure
-  fix?: () => Promise<void>;
-};
-
-// A check returns one result, or one per item it looks at (e.g. per branch).
-export type Check = () => Promise<Result | Result[]>;
+import type { Group, Result } from "./types.js";
 
 const icons = {
   pass: pc.green("✓"),
@@ -18,19 +7,20 @@ const icons = {
   fail: pc.red("✗"),
 };
 
-// Group name -> checks, printed in this order. Example: { Secrets: [envTracked, envInHistory] }
-export type Groups = Record<string, Check[]>;
+// title: "repo (branch)". note: printed under the title, not counted as a warning.
+export type Header = { title: string; note?: string | undefined };
 
-export async function run(groups: Groups, repo: string): Promise<Result[]> {
+export async function run(groups: Group[], header: Header): Promise<Result[]> {
   // Run every check at once, then print in group order.
   const grouped = await Promise.all(
-    Object.entries(groups).map(async ([name, checks]) => ({
-      name,
-      results: (await Promise.all(checks.map((check) => check()))).flat(),
+    groups.map(async (group) => ({
+      name: group.name,
+      results: (await Promise.all(group.checks.map((check) => check()))).flat(),
     })),
   );
 
-  console.log(`${pc.bold("check-repo-ready")}  ${repo}`);
+  console.log(`${pc.bold("check-repo-ready")}  ${header.title}`);
+  if (header.note) console.log(pc.yellow(`→ ${header.note}`));
 
   const hintIndent = " ".repeat(27); // lines the hint up under the message
   for (const group of grouped) {

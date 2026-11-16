@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseGitHubRemote } from "./context.js";
+import { parseGitHubRemote } from "./github.js";
 
 describe("parseGitHubRemote", () => {
   const expected = { owner: "moteeb-asad", repo: "repo-ready" };
