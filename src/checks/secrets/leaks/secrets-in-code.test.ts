@@ -87,8 +87,23 @@ describe("findSecrets: vendor keys", () => {
     ).toEqual([]);
   });
 
-  it("ignores .env.example", () => {
-    expect(findSecrets([`api/.env.example:1:OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`])).toEqual([]);
+  it("ignores .env.example and its variants", () => {
+    for (const file of ["api/.env.example", ".env.local.example", ".env.sample", ".env.template"]) {
+      expect(findSecrets([`${file}:1:OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`]), file).toEqual([]);
+    }
+  });
+
+  it("warns instead of failing for keys in tests and docs, and says where", () => {
+    const key = k("ghp", "_", RANDOM, "Ab12");
+    expect(findSecrets([`src/feedback.test.ts:107:${key}`, `docs/setup.mdx:80:${key}`])).toEqual([
+      { file: "src/feedback.test.ts", line: 107, kind: "GitHub token in a test file", severity: "warn" },
+      { file: "docs/setup.mdx", line: 80, kind: "GitHub token in docs", severity: "warn" },
+    ]);
+  });
+
+  it("skips patches, minified bundles and vendored code", () => {
+    const key = k("ghp", "_", RANDOM, "Ab12");
+    expect(findSecrets([`a.patch:6:${key}`, `static/pdf.worker.min.mjs:28:${key}`, `vendor/lib.js:1:${key}`])).toEqual([]);
   });
 
   it("reports one finding per line", () => {
@@ -170,14 +185,31 @@ describe("findSecrets: secret-named variables", () => {
     ).toEqual([]);
   });
 
-  it("skips test files, fixtures, translations and docs", () => {
+  it("skips test files, fixtures, sample data, translations and docs", () => {
     const line = `const JWT_SECRET = "${k("Zq8!", "vL2mR7")}"`;
     expect(
       findSecrets([
         `src/auth.test.ts:1:${line}`,
         `test/fixtures/users.ts:1:${line}`,
+        `apps/shop/e2e/support.ts:1:${line}`,
+        `backend/cmd/worker_test.go:1:${line}`,
+        `scripts/test_setup.py:1:${line}`,
+        `src/assets/dummyData.js:1:${line}`,
         `src/locales/en.ts:1:${line}`,
         `README.md:1:${line}`,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("ignores names that hold something about a secret, not the secret", () => {
+    expect(
+      findSecrets([
+        'a.ts:1:const apiKeyEnv = "OPENAI_API_KEY",',
+        'b.ts:2:const apiKeyUrl = "https://platform.openai.com/api-keys",',
+        `c.ts:3:const REFRESH_TOKEN_COOKIE = "${k("refresh", "_token_v2")}";`,
+        `d.ts:4:const INVALID_OAUTH_TOKEN = "${k("abc123", "!xyz")}";`,
+        `e.js:5:const PROXY_PASSWORD_CIPHER = "${k("Zq8!", "vL2mR7x")}";`,
+        `f.ts:6:const HKDF_INFO_AUTH_TOKEN = "${k("sync-", "auth-v1")}";`,
       ]),
     ).toEqual([]);
   });
