@@ -70,13 +70,15 @@ const supabaseServiceRole: Detector = {
 const SECRET_VAR =
   /(?<![A-Za-z0-9_])([A-Za-z0-9_]*(?:secret|password|passwd|pwd|api_?key|apikey|auth_?token|access_?token|refresh_?token|private_?key)[A-Za-z0-9_]*)["']?\s*[:=]\s*["'`]([^"'`\s]{8,})["'`]/i;
 const TRANSLATIONS = /(^|\/)(locales?|i18n)\//i;
+// Dependency lists: "@acme/secrets": "workspace:*" is a package name and a version.
+const MANIFESTS = /(^|\/)(package\.json|pyproject\.toml|Cargo\.toml|composer\.json|Gemfile)$/i;
 // Names that hold something about a secret, not the secret: apiKeyEnv, TOKEN_COOKIE, INVALID_TOKEN.
 const NOT_A_SECRET_NAME = /(env|url|uri|cookie|header|name|field|label|prefix|path|type|cipher|hash|encrypted)$|invalid|example|dummy|mock|fake|test|sample|info/i;
 
 const secretVariable: Detector = {
   severity: "warn",
   find: (content, file) => {
-    if (TEST_PATH.test(file) || DOCS_PATH.test(file) || TRANSLATIONS.test(file)) return undefined;
+    if (TEST_PATH.test(file) || DOCS_PATH.test(file) || TRANSLATIONS.test(file) || MANIFESTS.test(file)) return undefined;
     const [, name, value] = content.match(SECRET_VAR) ?? [];
     if (!name || !value || NOT_A_SECRET_NAME.test(name)) return undefined;
     if (PLACEHOLDER.test(value) || value.includes("${") || new Set(value).size < 6) return undefined;

@@ -201,6 +201,10 @@ describe("findSecrets: secret-named variables", () => {
     ).toEqual([]);
   });
 
+  it("ignores dependency names in package manifests", () => {
+    expect(findSecrets(['backend/runner/package.json:37:    "@novadeck/secrets": "workspace:*",'])).toEqual([]);
+  });
+
   it("ignores names that hold something about a secret, not the secret", () => {
     expect(
       findSecrets([
