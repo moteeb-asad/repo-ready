@@ -1,6 +1,34 @@
+import { Octokit } from "@octokit/rest";
 import { execa } from "execa";
 
 export type GitHubRepo = { owner: string; repo: string };
+
+const TIMEOUT_SECONDS = 20;
+
+// One client per check. Octokit's own logging is silenced (errors become a skipped check),
+// and all of the check's requests share one time limit, so a flaky network can't hang the report.
+export function githubClient(token: string): Octokit {
+  const quiet = () => {};
+  return new Octokit({
+    auth: token,
+    log: { debug: quiet, info: quiet, warn: quiet, error: quiet },
+    request: { signal: AbortSignal.timeout(TIMEOUT_SECONDS * 1000) },
+  });
+}
+
+// Why a GitHub API check could not run, in words a user can act on.
+export function apiSkipReason(error: unknown, remote: GitHubRepo): string {
+  const message = String((error as Error)?.message ?? error);
+  if (/aborted|timed? ?out/i.test(message)) return `GitHub did not answer within ${TIMEOUT_SECONDS} seconds`;
+  if (/ENETUNREACH|ENOTFOUND|ECONNRESET|ECONNREFUSED|EAI_AGAIN|fetch failed/i.test(message)) {
+    return "could not reach GitHub, check your internet connection";
+  }
+  if (/rate limit/i.test(message)) return "GitHub API rate limit reached, try again later";
+  if (/Could not resolve to a Repository|^Not Found/i.test(message)) {
+    return `${remote.owner}/${remote.repo} not found on GitHub, or this token has no access to it`;
+  }
+  return `GitHub API error: ${message.split("\n")[0]}`;
+}
 
 export function parseGitHubRemote(url: string): GitHubRepo | undefined {
   const match = url.trim().match(/github\.com[:/]([^/]+)\/([^/]+?)(\.git)?\/?$/);
