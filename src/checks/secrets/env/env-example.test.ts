@@ -104,6 +104,21 @@ describe("envVarNames", () => {
     ).toEqual(["API_URL"]);
   });
 
+  it("ignores comment lines", () => {
+    expect(
+      envVarNames([
+        'src/env.ts:// Python: os.environ["X"] raises when missing',
+        "app.py:# token = os.environ['SLACK_TOKEN']",
+        "src/a.ts: * Reads process.env.API_URL when set.",
+        "src/b.ts:/* process.env.OLD_KEY */",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("still reads code that has a comment after it", () => {
+    expect(envVarNames(["src/db.ts:const url = process.env.DATABASE_URL; // required"])).toEqual(["DATABASE_URL"]);
+  });
+
   it("lists each name once", () => {
     expect(envVarNames(["a.ts:process.env.JWT_SECRET", "b.ts:process.env.JWT_SECRET"])).toEqual(["JWT_SECRET"]);
   });
