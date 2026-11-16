@@ -24,8 +24,16 @@ export function isVague(subject: string): boolean {
   if (INITIAL.test(text)) return false;
   if (GITHUB_DEFAULT.test(text)) return true;
 
-  const words = text.toLowerCase().split(/\s+/).map((w) => w.replace(/[^a-z0-9]/g, "")).filter(Boolean);
-  return words.length <= 1 || words.every((w) => GENERIC.has(w));
+  // Letters and digits in any script: Korean, Russian, Chinese messages are words too.
+  const words = text.toLowerCase().split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}]/gu, "")).filter(Boolean);
+  if (words.length === 0) return true;
+  // Chinese, Japanese and Thai don't put spaces between words: one long "word" is a sentence.
+  if (words.length === 1) return countNoSpaceScript(words[0] ?? "") < 4;
+  return words.every((w) => GENERIC.has(w));
+}
+
+function countNoSpaceScript(word: string): number {
+  return word.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/gu)?.length ?? 0;
 }
 
 // `subjects` are the first lines of recent commits, newest first, merges excluded.

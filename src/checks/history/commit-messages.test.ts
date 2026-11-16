@@ -37,6 +37,22 @@ describe("isVague", () => {
     }
   });
 
+  it("accepts messages in other languages and scripts", () => {
+    for (const s of [
+      "fix: 검색 조건이 없으면 언어 링크에 빈 물음표를 붙이지 않음",
+      "feat: Квартал — высота заметки по содержимому",
+      "chore: 清理本机记录与旧构建，增加仓库上传检查",
+      "修复首页顶栏站名比其它页靠后 2px",
+      "fix: ログイン画面のエラー表示を修正",
+    ]) {
+      expect(isVague(s), s).toBe(false);
+    }
+  });
+
+  it("still flags a single short word in any script", () => {
+    for (const s of ["修复", "исправил", "수정"]) expect(isVague(s), s).toBe(true);
+  });
+
   it("accepts initial commits", () => {
     for (const s of ["init", "Initial commit", "first commit", "Initialize project using Create React App"]) {
       expect(isVague(s), s).toBe(false);
