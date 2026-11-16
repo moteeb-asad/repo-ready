@@ -83,6 +83,26 @@ describe("findSecretLogs", () => {
         "a.ts:1:const secret = process.env.JWT_SECRET;",
         "src/auth.test.ts:2:console.log(process.env.JWT_SECRET)",
         "README.md:3:console.log(process.env.JWT_SECRET)",
+        "tests/ci/test_publisher_workflow.py:160:print(credentials)",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("ignores patches, minified bundles and vendored code", () => {
+    expect(
+      findSecretLogs([
+        "libraries/patches/@xterm__addon@0.4.0.patch:6:+  console.log(token)",
+        "static/vendor/pdfjs/pdf.worker.min.mjs:28:console.log(s.password)",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("ignores yes/no names about a secret and counts of secrets", () => {
+    expect(
+      findSecretLogs([
+        "a.ts:1910:console.log('ready', hasApiKey)",
+        "b.ts:2:console.log(isTokenValid)",
+        "scripts/audit.js:423:console.log(result.stats.secrets)",
       ]),
     ).toEqual([]);
   });
