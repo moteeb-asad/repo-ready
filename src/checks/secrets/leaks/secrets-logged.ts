@@ -1,10 +1,15 @@
 import { type GrepMatch, grepTracked } from "../../../git.js";
 import type { Result } from "../../../types.js";
+import { DOCS_PATH, TEST_PATH, VENDOR_PATH } from "../paths.js";
 
 export type LoggedSecret = { file: string; line: number; what: string };
 
 const LOG_CALL = /\b(?:console\.(?:log|info|debug|warn|error|trace)|print|logger\.\w+|logging\.\w+|log\.(?:info|debug|warn|error))\s*\(/;
-const SKIP_FILES = /\.(test|spec)\.|__tests__\/|\.md$/i;
+
+// Tests, docs, patches, minified bundles and vendored code are not the project's runtime logs.
+function skipFile(file: string): boolean {
+  return TEST_PATH.test(file) || DOCS_PATH.test(file) || VENDOR_PATH.test(file);
+}
 
 // Env variable names that hold secrets. NEXT_PUBLIC_* and similar are public by design.
 const SECRET_ENV = /SECRET|KEY|TOKEN|PASSWORD|PASSWD|PWD|PRIVATE|CREDENTIAL/i;
@@ -12,11 +17,15 @@ const JS_ENV = /\b(?:process\.env|import\.meta\.env)\.([A-Za-z0-9_]+)/g;
 const PY_ENV = /\bos\.(?:environ\[\s*|environ\.get\(\s*|getenv\(\s*)["']([A-Za-z0-9_]+)["']/g;
 
 // The last word of a name decides: accessToken, user.password, db_password, apiKey.
-const SECRET_WORDS = new Set(["secret", "secrets", "password", "passwd", "pwd", "token", "credential", "credentials"]);
+// Not "secrets": stats.secrets and similar are usually counts or lists of names.
+const SECRET_WORDS = new Set(["secret", "password", "passwd", "pwd", "token", "credential", "credentials"]);
 const SECRET_PAIRS = new Set(["api_key", "private_key", "secret_key", "access_key"]);
+// hasApiKey, isTokenValid, shouldRefreshToken: a yes/no about a secret, not the secret.
+const BOOLEAN_PREFIX = new Set(["has", "is", "should", "can", "needs", "missing", "valid", "use", "show"]);
 
 function isSecretName(name: string): boolean {
   const words = name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase().split(/_+/).filter(Boolean);
+  if (BOOLEAN_PREFIX.has(words[0] ?? "")) return false;
   const last = words.at(-1) ?? "";
   return SECRET_WORDS.has(last) || SECRET_PAIRS.has(words.slice(-2).join("_"));
 }
@@ -37,7 +46,7 @@ export function findSecretLogs(matches: GrepMatch[]): LoggedSecret[] {
   const found: LoggedSecret[] = [];
 
   for (const { file, line, content } of matches) {
-    if (SKIP_FILES.test(file)) continue;
+    if (skipFile(file)) continue;
 
     const call = content.match(LOG_CALL);
     if (call?.index === undefined) continue;

@@ -10,6 +10,14 @@ describe("findEnvFiles", () => {
     expect(findEnvFiles([".env.example", "api/.env.example"])).toEqual([]);
   });
 
+  it("allows example variants", () => {
+    expect(findEnvFiles([".env.agent-bridge.example", ".env.local.example", ".env.sample", ".env.template"])).toEqual([]);
+  });
+
+  it("still finds a real config with an unusual name", () => {
+    expect(findEnvFiles([".env.bridge"])).toEqual([".env.bridge"]);
+  });
+
   it("finds .env at the root and in folders", () => {
     expect(findEnvFiles([".env", "api/.env"])).toEqual([".env", "api/.env"]);
   });
