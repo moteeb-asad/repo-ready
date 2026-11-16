@@ -28,6 +28,25 @@ export async function defaultBranch(): Promise<string | undefined> {
   return pickDefaultBranch(head.failed ? undefined : head.stdout, local.stdout);
 }
 
+export type GrepMatch = { file: string; line: number; content: string };
+
+// One line of `git grep -n` output: "<file>:<line>:<content>".
+export function parseGrepLine(raw: string): GrepMatch | undefined {
+  const match = raw.match(/^(.+?):(\d+):(.*)$/);
+  if (!match?.[1] || !match[2] || match[3] === undefined) return undefined;
+  return { file: match[1], line: Number(match[2]), content: match[3] };
+}
+
+// Search committed or staged text files (what GitHub will show) from the repo root.
+// `pattern` is a POSIX extended regex. Returns no matches when nothing is found.
+export async function grepTracked(pattern: string, { ignoreCase = false } = {}): Promise<GrepMatch[]> {
+  const args = ["grep", "--cached", "-n", "-I", "--full-name", "-E", ...(ignoreCase ? ["-i"] : []), pattern, "--", ":/"];
+  const grep = await execa("git", args, { lines: true, reject: false });
+  // Exit code 1 means no match.
+  if (grep.exitCode !== 0 && grep.exitCode !== 1) throw new Error(`git grep failed: ${grep.stderr}`);
+  return grep.stdout.map(parseGrepLine).filter((m): m is GrepMatch => m !== undefined);
+}
+
 // A tracked file's committed or staged content (what GitHub will show), not unsaved edits.
 export async function readTracked(file: string): Promise<string> {
   const { stdout } = await execa("git", ["show", `:${file}`]);

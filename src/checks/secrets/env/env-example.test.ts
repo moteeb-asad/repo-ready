@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { envVarNames, findEnvExample } from "./env-example.js";
+import { envVarNames as namesInMatches, findEnvExample } from "./env-example.js";
+
+// Test cases are written as "<file>:<content>"; the line number doesn't matter here.
+const envVarNames = (lines: string[]) =>
+  namesInMatches(
+    lines.map((raw) => {
+      const at = raw.indexOf(":");
+      return { file: raw.slice(0, at), line: 1, content: raw.slice(at + 1) };
+    }),
+  );
 
 describe("findEnvExample", () => {
   it("finds .env.example at the root", () => {

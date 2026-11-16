@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { findSecretLogs } from "./secrets-logged.js";
+import { type GrepMatch, parseGrepLine } from "../../../git.js";
+import { findSecretLogs as findInMatches } from "./secrets-logged.js";
+
+// Test cases are written as git grep output lines: "<file>:<line>:<content>".
+const findSecretLogs = (lines: string[]) => findInMatches(lines.map(parseGrepLine) as GrepMatch[]);
 
 const whats = (lines: string[]) => findSecretLogs(lines).map((f) => f.what);
 

@@ -124,15 +124,21 @@ src/
   cli.ts             commands and flags; lists the groups in print order
   types.ts           Result, Check and Group: the contract between checks and the runner
   runner.ts          runs checks, prints the report
-  git.ts             shared git helpers: trackedFiles(), readTracked()
+  git.ts             shared git helpers: trackedFiles(), readTracked(), grepTracked()
   github.ts          owner/repo from origin, token (GH_TOKEN, GITHUB_TOKEN, gh auth token)
   checks/
     branches/        index.ts  branch-protection.ts
     ci/              index.ts  ci-on-pr.ts
     history/         index.ts  commit-messages.ts  direct-pushes.ts
-    secrets/         index.ts  env-tracked.ts  env-in-history.ts  secrets-in-code.ts  secrets-logged.ts  env-example.ts
+    secrets/         index.ts
+      env/           env-tracked.ts  env-in-history.ts  env-example.ts      (.env files)
+      leaks/         secrets-in-code.ts  secrets-logged.ts  key-patterns.ts  (secrets in code and logs)
     readme/          index.ts  readme.ts
 ```
+
+A group with many checks can split into subfolders by what they look at, as `secrets/` does.
+The group's `index.ts` still lists every check, so the report doesn't change. To add an API key
+format, add one line to `secrets/leaks/key-patterns.ts`.
 
 Each check has a test file next to it (`env-tracked.test.ts`).
 

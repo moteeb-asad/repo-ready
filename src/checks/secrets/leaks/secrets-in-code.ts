@@ -1,6 +1,7 @@
 import { posix } from "node:path";
-import { execa } from "execa";
-import type { Result } from "../../types.js";
+import { type GrepMatch, grepTracked } from "../../../git.js";
+import type { Result } from "../../../types.js";
+import { KEYS } from "./key-patterns.js";
 
 type Severity = "fail" | "warn";
 export type Finding = { file: string; line: number; kind: string; severity: Severity };
@@ -14,24 +15,6 @@ const PLACEHOLDER = /x{4,}|your|example|placeholder|dummy|fake|redacted|changeme
 function isPlaceholder(value: string): boolean {
   return PLACEHOLDER.test(value) || new Set(value).size < 10;
 }
-
-// Well-known key formats. Order matters: Anthropic keys also start with "sk-".
-const KEYS: { kind: string; pattern: RegExp }[] = [
-  { kind: "Anthropic API key", pattern: /(?<![A-Za-z0-9])sk-ant-[A-Za-z0-9_-]{32,}/ },
-  { kind: "OpenAI API key", pattern: /(?<![A-Za-z0-9])sk-(proj-)?[A-Za-z0-9_-]{32,}/ },
-  { kind: "AWS access key", pattern: /(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])/ },
-  { kind: "GitHub token", pattern: /(?<![A-Za-z0-9])(gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{60,})/ },
-  { kind: "Slack token", pattern: /(?<![A-Za-z0-9])xox[baprs]-[A-Za-z0-9-]{20,}/ },
-  { kind: "Stripe live key", pattern: /(?<![A-Za-z0-9])[sr]k_live_[A-Za-z0-9]{20,}/ },
-  { kind: "Google API key", pattern: /(?<![A-Za-z0-9])AIza[0-9A-Za-z_-]{35}/ },
-  { kind: "Google OAuth client secret", pattern: /(?<![A-Za-z0-9])GOCSPX-[A-Za-z0-9_-]{28}/ },
-  { kind: "Supabase secret key", pattern: /(?<![A-Za-z0-9])sb_secret_[A-Za-z0-9_-]{20,}/ },
-  { kind: "SendGrid API key", pattern: /(?<![A-Za-z0-9])SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}/ },
-  { kind: "npm token", pattern: /(?<![A-Za-z0-9])npm_[A-Za-z0-9]{36}/ },
-  { kind: "Hugging Face token", pattern: /(?<![A-Za-z0-9])hf_[A-Za-z0-9]{34}/ },
-  { kind: "Groq API key", pattern: /(?<![A-Za-z0-9])gsk_[A-Za-z0-9]{52}/ },
-  { kind: "Resend API key", pattern: /(?<![A-Za-z0-9])re_[A-Za-z0-9]{8}_[A-Za-z0-9]{24}/ },
-];
 
 const vendorKey: Detector = {
   severity: "fail",
@@ -106,25 +89,22 @@ const DETECTORS: Detector[] = [privateKey, vendorKey, supabaseServiceRole, conne
 
 // Cheap first pass for git grep (POSIX ERE, case-insensitive). The detectors do the exact matching.
 const PREFIXES = [
-  "sk-", "AKIA", "gh[pousr]_", "github_pat_", "xox[baprs]-", "[sr]k_live_", "AIza", "PRIVATE KEY-----",
-  "GOCSPX-", "sb_secret_", "SG\\.", "npm_", "hf_", "gsk_", "re_", "eyJ", "://[^ ]*:[^ ]*@",
+  ...KEYS.map((k) => k.prefix),
+  "PRIVATE KEY-----", "eyJ", "://[^ ]*:[^ ]*@",
   "secret", "passw", "pwd", "api_?key", "apikey", "token", "private_?key",
 ].join("|");
 
-// `lines` is git grep output: "<file>:<line>:<content>". The content is never returned.
-export function findSecrets(lines: string[]): Finding[] {
+// The matched content is never returned.
+export function findSecrets(matches: GrepMatch[]): Finding[] {
   const found: Finding[] = [];
 
-  for (const raw of lines) {
-    const match = raw.match(/^(.+?):(\d+):(.*)$/);
-    if (!match?.[1] || !match[2] || match[3] === undefined) continue;
-    const [, file, line, content] = match;
+  for (const { file, line, content } of matches) {
     if (posix.basename(file) === ".env.example") continue;
 
     for (const detector of DETECTORS) {
       const kind = detector.find(content, file);
       if (kind) {
-        found.push({ file, line: Number(line), kind, severity: detector.severity });
+        found.push({ file, line, kind, severity: detector.severity });
         break;
       }
     }
@@ -134,16 +114,7 @@ export function findSecrets(lines: string[]): Finding[] {
 }
 
 export async function secretsInCode(): Promise<Result> {
-  // --cached: what is committed or staged. -I: skip binary files. Exit code 1 means no match.
-  const grep = await execa(
-    "git",
-    ["grep", "--cached", "-n", "-I", "-i", "--full-name", "-E", PREFIXES, "--", ":/"],
-    { lines: true, reject: false },
-  );
-  if (grep.exitCode !== 0 && grep.exitCode !== 1) {
-    throw new Error(`git grep failed: ${grep.stderr}`);
-  }
-  const found = findSecrets(grep.stdout);
+  const found = findSecrets(await grepTracked(PREFIXES, { ignoreCase: true }));
 
   if (found.length === 0) {
     return { id: "secrets-in-code", status: "pass", message: "no secrets in tracked files" };

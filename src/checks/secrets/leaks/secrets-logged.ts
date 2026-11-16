@@ -1,5 +1,5 @@
-import { execa } from "execa";
-import type { Result } from "../../types.js";
+import { type GrepMatch, grepTracked } from "../../../git.js";
+import type { Result } from "../../../types.js";
 
 export type LoggedSecret = { file: string; line: number; what: string };
 
@@ -33,13 +33,10 @@ function codeOnly(args: string): string {
 }
 
 // `lines` is git grep output: "<file>:<line>:<content>".
-export function findSecretLogs(lines: string[]): LoggedSecret[] {
+export function findSecretLogs(matches: GrepMatch[]): LoggedSecret[] {
   const found: LoggedSecret[] = [];
 
-  for (const raw of lines) {
-    const match = raw.match(/^(.+?):(\d+):(.*)$/);
-    if (!match?.[1] || !match[2] || match[3] === undefined) continue;
-    const [, file, line, content] = match;
+  for (const { file, line, content } of matches) {
     if (SKIP_FILES.test(file)) continue;
 
     const call = content.match(LOG_CALL);
@@ -48,7 +45,7 @@ export function findSecretLogs(lines: string[]): LoggedSecret[] {
     const code = codeOnly(args);
 
     const what = firstSecret(args, code);
-    if (what) found.push({ file, line: Number(line), what });
+    if (what) found.push({ file, line, what });
   }
 
   return found;
@@ -74,19 +71,7 @@ function firstSecret(args: string, code: string): string | undefined {
 }
 
 export async function secretsLogged(): Promise<Result> {
-  const grep = await execa(
-    "git",
-    [
-      "grep", "--cached", "-n", "-I", "--full-name", "-E",
-      "console\\.|print\\(|logger\\.|logging\\.|log\\.(info|debug|warn|error)",
-      "--", ":/",
-    ],
-    { lines: true, reject: false },
-  );
-  if (grep.exitCode !== 0 && grep.exitCode !== 1) {
-    throw new Error(`git grep failed: ${grep.stderr}`);
-  }
-  const found = findSecretLogs(grep.stdout);
+  const found = findSecretLogs(await grepTracked("console\\.|print\\(|logger\\.|logging\\.|log\\.(info|debug|warn|error)"));
 
   if (found.length === 0) {
     return { id: "secrets-logged", status: "pass", message: "no secrets written to logs" };
