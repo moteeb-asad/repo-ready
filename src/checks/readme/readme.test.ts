@@ -25,6 +25,20 @@ describe("hasRunSteps", () => {
     expect(hasRunSteps("# app\n\n```bash\nnpm install\nnpm run dev\n```\n")).toBe(true);
   });
 
+  it("finds installer commands", () => {
+    for (const step of [
+      "brew install aoe",
+      "curl -fsSL https://example.com/install.sh | bash",
+      "wget -qO- https://example.com/install.sh | sh",
+      "winget install Foo.Bar",
+      "scoop install foo",
+      "bunx create-foo",
+      "pip3 install foo",
+    ]) {
+      expect(hasRunSteps(`# app\n\n${step}\n`), step).toBe(true);
+    }
+  });
+
   it("finds an indented command", () => {
     expect(hasRunSteps("# app\n\n    npx check-repo-ready\n")).toBe(true);
   });
