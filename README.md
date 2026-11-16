@@ -31,7 +31,8 @@ CI
   ✓ ci-on-pr               .github/workflows/ci.yml
 
 History
-  ✓ commit-messages        all 41 recent commits say what changed
+  ✓ commit-messages        all 43 recent commits say what changed
+  ✓ direct-pushes          all 7 commits on main since the first pull request came through pull requests (2 direct pushes before that)
 
 Secrets
   ✓ env-tracked            no .env file is tracked
@@ -89,6 +90,7 @@ Update with `npm update -g check-repo-ready`, remove with `npm uninstall -g chec
 | `branch-protection` | The default branch, and `develop` if it exists, require a pull request and passing CI before a change is merged. The report shows one line per branch. | Warns if a pull request is required but CI is not. Fails if the branch is not protected. Warns instead of failing on a private repo, because protection there needs a paid GitHub plan. |
 | `ci-on-pr` | A workflow in `.github/workflows/` runs on `pull_request`. | Fails. |
 | `commit-messages` | The last 50 commits (merges excluded) say what changed. Vague: one word (`update`, `wip`), only generic words (`minor changes`, `fix bug`), or GitHub's web editor default (`Update index.html`, `Add files via upload`). Conventional Commits prefixes are fine; the text after them is judged. The first commit (`init`, `Initial commit`) is fine. | Warns when 20% or more are vague, fails at 50%, and quotes up to 3. A single vague commit is ignored. |
+| `direct-pushes` | The last 30 commits that landed on the default branch on GitHub came through pull requests (merge, squash or rebase). Only commits since the first pull request count, so direct pushes while setting up a repo don't. Commits inside a merged branch are not counted. | Warns when 20% or more were pushed directly, fails at 50%, and says when the latest one was. A single direct push is ignored. Skipped without a GitHub token. |
 | `env-tracked` | No `.env` or `.env.*` file is tracked by git. `.env.example` is allowed. | Fails and lists the files. |
 | `env-in-history` | No commit on any branch ever added a `.env` file, even one deleted later. | Fails and lists the file, commit and date. |
 | `secrets-in-code` | No tracked file contains a secret: API keys in a well-known format (OpenAI, Anthropic, AWS, GitHub, Slack, Stripe live, Google, Supabase, SendGrid, npm, Hugging Face, Groq, Resend), a `PRIVATE KEY` block, a database URL with a real password, or a Supabase service-role key. Placeholders, `localhost` URLs and the public Supabase `anon` key are ignored. | Fails and lists the file, line and type. Warns when a variable named like a secret (`JWT_SECRET`, `password`, `apiKey`) is set to a literal value, outside tests and docs. The value is never shown. |
@@ -118,7 +120,6 @@ A `--ci` flag that exits with `1` when a check fails is planned.
 ## Roadmap
 
 - `ci-green` check: the last CI run on the default branch passed
-- `direct-pushes` check: recent commits on the default branch came through pull requests
 - `--json` output for scripts and AI agents, and `--ci` for exit codes
 - `repo-ready explain <check>`: what a problem means and how to fix it
 - `--fix`: fix what can be fixed (a ruleset, a CI workflow, `.env.example`), always through a
