@@ -125,7 +125,8 @@ src/
   types.ts           Result, Check and Group: the contract between checks and the runner
   runner.ts          runs checks, prints the report
   git.ts             shared git helpers: trackedFiles(), readTracked(), grepTracked()
-  github.ts          owner/repo from origin, token (GH_TOKEN, GITHUB_TOKEN, gh auth token)
+  github.ts          owner/repo from origin, token (GH_TOKEN, GITHUB_TOKEN, gh auth token),
+                     githubClient() (quiet, 20 s limit), apiSkipReason()
   checks/
     branches/        index.ts  branch-protection.ts
     ci/              index.ts  ci-on-pr.ts
@@ -211,4 +212,4 @@ Build the smallest thing that solves the task. Nothing more.
 - Checks built: `branch-protection`, `ci-on-pr`, `commit-messages`, `direct-pushes`, `env-tracked`, `env-in-history`, `secrets-in-code`, `secrets-logged`, `env-example`, `readme`. The report is grouped by section, shows the checked branch, and has a fix hint under each warning and failure.
 - Roadmap and progress: private GitHub project "repo-ready roadmap" (Version and Priority fields).
 - Tested against other people's repos (blobless clones in `C:\dev\tests\repo-ready-tests`); false alarms found there are fixed before new checks.
-- Next (v0.1.0): `ci-green`. It is the third check to create an Octokit client (after `branch-protection` and `direct-pushes`), so move that setup into `github.ts` then.
+- Next (v0.2.0): `ci-green`. Use `githubClient()` and `apiSkipReason()` from `github.ts`, like `branch-protection` and `direct-pushes`.

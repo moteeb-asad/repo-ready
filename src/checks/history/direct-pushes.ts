@@ -1,5 +1,4 @@
-import { Octokit } from "@octokit/rest";
-import { ghToken, githubRemote } from "../../github.js";
+import { apiSkipReason, ghToken, githubClient, githubRemote } from "../../github.js";
 import type { Result } from "../../types.js";
 
 const ID = "direct-pushes";
@@ -127,9 +126,7 @@ export async function directPushes(): Promise<Result> {
   const token = await ghToken();
   if (!token) return skipped("not logged in to GitHub", "Run gh auth login, or set GITHUB_TOKEN");
 
-  // Silence Octokit's own logging; errors are reported as a skipped check.
-  const quiet = () => {};
-  const octokit = new Octokit({ auth: token, log: { debug: quiet, info: quiet, warn: quiet, error: quiet } });
+  const octokit = githubClient(token);
 
   try {
     const commits: Commit[] = [];
@@ -160,10 +157,6 @@ export async function directPushes(): Promise<Result> {
 
     return judgeDirectPushes(branch, firstParentChain(commits, tip, SAMPLE));
   } catch (error) {
-    const message = (error as Error).message;
-    if (/Could not resolve to a Repository/.test(message)) {
-      return skipped(`${remote.owner}/${remote.repo} not found on GitHub, or this token has no access to it`);
-    }
-    return skipped(`GitHub API error: ${message.split("\n")[0]}`);
+    return skipped(apiSkipReason(error, remote));
   }
 }
