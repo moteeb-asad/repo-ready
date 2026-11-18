@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { judge, judgeBranch } from "./branch-protection.js";
+import { judge, judgeBranch, privateRepoSkip } from "./branch-protection.js";
 
 describe("judgeBranch", () => {
   it("passes when a ruleset requires a pull request and passing CI", () => {
@@ -73,5 +73,23 @@ describe("judge", () => {
     const [result] = judge([protectedMain], true);
     expect(result?.status).toBe("pass");
     expect(result?.hint).toBeUndefined();
+  });
+});
+
+describe("privateRepoSkip", () => {
+  it("explains a private repo on a free plan, with a hint", () => {
+    const error = new Error(
+      "Upgrade to GitHub Pro or make this repository public to enable this feature. - https://docs.github.com/rest/repos/rules#get-rules-for-a-branch",
+    );
+    expect(privateRepoSkip(error)).toEqual({
+      id: "branch-protection",
+      status: "warn",
+      message: "skipped: private repo on a free plan: branch protection needs GitHub Pro",
+      hint: "Make the repo public, or use GitHub Pro to enforce protection",
+    });
+  });
+
+  it("leaves other errors to the shared API handling", () => {
+    expect(privateRepoSkip(new Error("Bad credentials"))).toBeUndefined();
   });
 });

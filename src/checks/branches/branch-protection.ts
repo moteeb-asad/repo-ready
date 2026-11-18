@@ -65,6 +65,16 @@ function skipped(reason: string, hint?: string): Result {
   return result;
 }
 
+// On a free plan, GitHub refuses to read (or enforce) branch rules on a private repo, with
+// "Upgrade to GitHub Pro or make this repository public to enable this feature."
+export function privateRepoSkip(error: unknown): Result | undefined {
+  if (!/Upgrade to GitHub Pro/i.test(String((error as Error)?.message ?? error))) return undefined;
+  return skipped(
+    "private repo on a free plan: branch protection needs GitHub Pro",
+    "Make the repo public, or use GitHub Pro to enforce protection",
+  );
+}
+
 export async function branchProtection(): Promise<Result | Result[]> {
   const remote = await githubRemote();
   if (!remote) return skipped("origin is not a GitHub repo");
@@ -96,6 +106,6 @@ export async function branchProtection(): Promise<Result | Result[]> {
 
     return judge(branches, repo.private);
   } catch (error) {
-    return skipped(apiSkipReason(error, remote));
+    return privateRepoSkip(error) ?? skipped(apiSkipReason(error, remote));
   }
 }
