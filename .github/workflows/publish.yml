@@ -1,0 +1,70 @@
+name: Publish
+
+# Publishes to npm when a GitHub release is published, with Trusted Publishing (OIDC):
+# npm trusts this workflow, so no npm token is stored anywhere, and every version gets provenance.
+# "Run workflow" (manual) does everything except publishing, to test the pipeline safely.
+# See docs/decisions/0003-publish-from-github-actions.md.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # lets npm verify this workflow (OIDC) and sign provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Use Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Check the release tag matches package.json
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "$TAG" ]; then
+            echo "Release tag $TAG does not match package.json $version"
+            exit 1
+          fi
+
+      - name: Pack
+        run: npm pack
+
+      - name: Smoke-test the packed package
+        run: |
+          dir="$(mktemp -d)"
+          npm install --prefix "$dir" ./check-repo-ready-*.tgz
+          "$dir/node_modules/.bin/repo-ready" | tee report.txt
+          grep -q "problem" report.txt
+
+      - name: Publish to npm
+        if: github.event_name == 'release'
+        run: npm publish --provenance --access public
+
+      - name: Dry run (manual run, nothing is published)
+        if: github.event_name == 'workflow_dispatch'
+        run: npm publish --provenance --access public --dry-run
