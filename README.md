@@ -103,10 +103,15 @@ reading those settings needs admin access.
 
 ## Security
 
-- repo-ready never prints the contents of a `.env` file. It shows file names, commits and dates.
-- It never rewrites git history. If a `.env` file was committed, **rotate every key it held**:
-  removing it from history does not make a leaked key safe again.
-- The GitHub token is only used to read branch rules. It is never printed or stored.
+- repo-ready reads your files only on your machine. It never prints, saves or sends a secret:
+  it shows the file, line and kind of key, never the key.
+- It changes nothing, downloads nothing, runs none of your code, and has no tracking.
+- It only talks to `api.github.com`, read-only, for `branch-protection` and `direct-pushes`.
+  Your GitHub token is never printed or stored.
+- It never rewrites git history. If a key was committed, **rotate it**: removing it from
+  history does not make a leaked key safe again.
+
+Details, and how to report a vulnerability: [SECURITY.md](SECURITY.md).
 
 ## Exit codes
 
