@@ -182,6 +182,7 @@ Each check has a test file next to it (`env-tracked.test.ts`).
 - Commit messages follow Conventional Commits: `feat(checks): add env-in-history check`.
 - No AI attribution in commit messages. Never mention Claude or any AI tool in commits or PRs.
 - Ask me before any commit, push, branch change or deleting files.
+- **Never merge a pull request, into `develop` or `main`.** Open it, wait for CI, and leave the review and the merge to me, every time. No auto-merge: it is off in the repo settings, Dependabot pull requests go into `develop` and are reviewed like any other, and the Actions token cannot approve pull requests.
 - Keep it simple. Don't add a dependency or a layer unless a check needs it.
 - Write tests for each check, including the failure case.
 - I'm on Windows with PowerShell 5, so `&&` does not work in my terminal. Give commands one per line.
