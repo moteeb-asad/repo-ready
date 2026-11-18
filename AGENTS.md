@@ -182,6 +182,7 @@ Each check has a test file next to it (`env-tracked.test.ts`).
 - Commit messages follow Conventional Commits: `feat(checks): add env-in-history check`.
 - No AI attribution in commit messages. Never mention Claude or any AI tool in commits or PRs.
 - Ask me before any commit, push, branch change or deleting files.
+- **Never merge a pull request, into `develop` or `main`.** Open it, wait for CI, and leave the review and the merge to me, every time. No auto-merge: it is off in the repo settings, Dependabot pull requests go into `develop` and are reviewed like any other, and the Actions token cannot approve pull requests.
 - Keep it simple. Don't add a dependency or a layer unless a check needs it.
 - Write tests for each check, including the failure case.
 - I'm on Windows with PowerShell 5, so `&&` does not work in my terminal. Give commands one per line.
@@ -206,7 +207,7 @@ Build the smallest thing that solves the task. Nothing more.
 - Repo created: public, `moteeb-asad/repo-ready`, with MIT license and Node `.gitignore`.
 - `develop` branch created.
 - Packages installed: commander, @octokit/rest, execa, picocolors, yaml, typescript, tsup, vitest, @types/node.
-- Published on npm as `check-repo-ready` (the name `repo-ready` was blocked as too similar to `repoready`). The installed command is `repo-ready`. Latest release: `0.1.1`, with a GitHub release per version.
+- Published on npm as `check-repo-ready` (the name `repo-ready` was blocked as too similar to `repoready`). The installed command is `repo-ready`. Latest release: `0.1.2`, with a GitHub release per version.
 - CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
 - Rulesets: "Protect main branch" (`main`) and "Protect develop" (`develop`). Both require a pull request and a passing `check`, block force pushes and deletion. Only `develop` requires branches to be up to date: `main` only takes pull requests from `develop`, and CI already tests the merge result, so on `main` it would only force a back-merge after every release. `main` allows merge commits only.
 - Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.

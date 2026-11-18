@@ -201,6 +201,23 @@ describe("findSecrets: secret-named variables", () => {
     ).toEqual([]);
   });
 
+  it("ignores secret-named variables in comment lines", () => {
+    const value = k("Zq8!", "vL2mR7");
+    expect(
+      findSecrets([
+        `src/a.ts:73:// Dependency lists: "@acme/secrets": "${value}" is a package name.`,
+        `app.py:2:# JWT_SECRET = "${value}"`,
+        `src/b.ts:3: * password: "${value}"`,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("still finds a real key in a comment line", () => {
+    expect(findSecrets([`src/a.ts:1:// old key: ${k("sk-", "proj-", RANDOM)}`])).toEqual([
+      { file: "src/a.ts", line: 1, kind: "OpenAI API key", severity: "fail" },
+    ]);
+  });
+
   it("ignores dependency names in package manifests", () => {
     expect(findSecrets(['backend/runner/package.json:37:    "@novadeck/secrets": "workspace:*",'])).toEqual([]);
   });
