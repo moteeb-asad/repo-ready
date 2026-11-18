@@ -79,6 +79,8 @@ const secretVariable: Detector = {
   severity: "warn",
   find: (content, file) => {
     if (TEST_PATH.test(file) || DOCS_PATH.test(file) || TRANSLATIONS.test(file) || MANIFESTS.test(file)) return undefined;
+    // A comment line describes code, it doesn't hold a value: // JS, # Python, /* and * block comments.
+    if (/^\s*(\/\/|#|\/\*|\*)/.test(content)) return undefined;
     const [, name, value] = content.match(SECRET_VAR) ?? [];
     if (!name || !value || NOT_A_SECRET_NAME.test(name)) return undefined;
     if (PLACEHOLDER.test(value) || value.includes("${") || new Set(value).size < 6) return undefined;
