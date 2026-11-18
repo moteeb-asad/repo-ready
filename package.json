@@ -1,6 +1,6 @@
 {
   "name": "check-repo-ready",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Check if your GitHub repo is ready to share: branch protection, CI on pull requests, clear commit history, no leaked secrets or .env files, and a README with run steps.",
   "bin": {
     "repo-ready": "dist/cli.js"
