@@ -176,7 +176,7 @@ Each check has a test file next to it (`env-tracked.test.ts`).
 - `main` is what is released. `develop` is where work comes together.
 - Every change is a short branch: `feat/`, `fix/`, `chore/`, `docs/`, `test/`, `refactor/`.
 - Every branch goes into `develop` through a pull request. Releases are one pull request from `develop` into `main`, merged with a merge commit (the only method `main` allows). No back-merge from `main` into `develop` is needed.
-- A release, in order: bump `version` in `package.json` (PR into `develop`), release PR into `main`, then create the GitHub release (`gh release create vX.Y.Z --target <main sha> --generate-notes`). Creating the release runs `.github/workflows/publish.yml`, which publishes to npm with Trusted Publishing and provenance. Never `npm publish` from a laptop (docs/decisions/0003).
+- A release, in order: bump `version` in `package.json` (PR into `develop`), release PR into `main`, then create the GitHub release (`gh release create vX.Y.Z --target <main sha> --generate-notes`). Creating the release runs `.github/workflows/publish.yml`, which stages the version on npm with Trusted Publishing and provenance. Then the maintainer approves it on npmjs.com → Staged Packages with their security key; only then is it live. Never `npm publish` from a laptop (docs/decisions/0003).
 - Before merging a pull request into `develop`, its branch must be up to date with `develop`. Use "Update branch" on the pull request.
 - CI runs on every pull request: lint, type check, tests, build.
 - Commit messages follow Conventional Commits: `feat(checks): add env-in-history check`.
