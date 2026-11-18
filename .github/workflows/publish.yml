@@ -1,8 +1,10 @@
 name: Publish
 
-# Publishes to npm when a GitHub release is published, with Trusted Publishing (OIDC):
+# Stages a new npm version when a GitHub release is published, with Trusted Publishing (OIDC):
 # npm trusts this workflow, so no npm token is stored anywhere, and every version gets provenance.
-# "Run workflow" (manual) does everything except publishing, to test the pipeline safely.
+# The version goes live only after the maintainer approves it on npmjs.com (Staged Packages)
+# with their security key, so this workflow alone can never publish.
+# "Run workflow" (manual) runs every step up to the smoke test, to test the pipeline safely.
 # See docs/decisions/0003-publish-from-github-actions.md.
 
 on:
@@ -61,10 +63,11 @@ jobs:
           "$dir/node_modules/.bin/repo-ready" | tee report.txt
           grep -q "problem" report.txt
 
-      - name: Publish to npm
+      # npm 12 has `npm stage publish`; the npm bundled with Node 24 does not.
+      - name: Use npm 12
         if: github.event_name == 'release'
-        run: npm publish --provenance --access public
+        run: npm install -g npm@12
 
-      - name: Dry run (manual run, nothing is published)
-        if: github.event_name == 'workflow_dispatch'
-        run: npm publish --provenance --access public --dry-run
+      - name: Stage on npm (approve it on npmjs.com → Staged Packages)
+        if: github.event_name == 'release'
+        run: npm stage publish --provenance --access public
