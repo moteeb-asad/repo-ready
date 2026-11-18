@@ -46,7 +46,7 @@ export function judgeDirectPushes(branch: string, chain: Commit[], now = Date.no
   if (direct.length === 0) {
     const which =
       n === 1
-        ? `the only commit on ${branch} ${before > 0 ? "since pull requests started" : "after the first"} came through a pull request`
+        ? `1 commit on ${branch} ${before > 0 ? "since pull requests started" : "after the first"}, made through a pull request`
         : `all ${n} ${before > 0 ? `commits on ${branch} since the first pull request` : `recent commits on ${branch}`} came through pull requests`;
     return { id: ID, status: "pass", message: `${which}${earlier}` };
   }
@@ -59,7 +59,7 @@ export function judgeDirectPushes(branch: string, chain: Commit[], now = Date.no
   if (direct.length < 2 || direct.length / n < 0.2) {
     const message =
       n === 1
-        ? `the only commit on ${branch} after the first was pushed directly${when ? `, ${when}` : ""}`
+        ? `1 commit on ${branch} after the first, pushed directly${when ? ` ${when}` : ""}`
         : `${direct.length} of ${n} recent commits on ${branch} pushed directly${latest}`;
     return { id: ID, status: "pass", message };
   }

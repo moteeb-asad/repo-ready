@@ -51,8 +51,9 @@ describe("judgeDirectPushes", () => {
       "all 3 recent commits on main came through pull requests",
     );
     expect(judgeDirectPushes("main", chain([false, true])).message).toBe(
-      "the only commit on main after the first came through a pull request",
+      "1 commit on main after the first, made through a pull request",
     );
+    expect(judgeDirectPushes("main", chain([false, false])).message).toBe("1 commit on main after the first, pushed directly");
   });
 
   it("does not count direct pushes from before the first pull request", () => {
