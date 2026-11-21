@@ -87,10 +87,32 @@ describe("findSecrets: vendor keys", () => {
     ).toEqual([]);
   });
 
-  it("ignores .env.example and its variants", () => {
+  it("fails on a real key in .env.example and its variants", () => {
     for (const file of ["api/.env.example", ".env.local.example", ".env.sample", ".env.template"]) {
-      expect(findSecrets([`${file}:1:OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`]), file).toEqual([]);
+      expect(findSecrets([`${file}:1:OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`]), file).toEqual([
+        { file, line: 1, kind: "OpenAI API key in .env.example", severity: "fail" },
+      ]);
     }
+  });
+
+  it("fails on a real database URL in .env.example", () => {
+    const url = k("postgres", "://", "app:Zq8vL2mR7x", "@", "db.abc123.supabase.co:5432/app");
+    expect(findSecrets([`.env.example:3:DATABASE_URL=${url}`])).toEqual([
+      { file: ".env.example", line: 3, kind: "database URL with password in .env.example", severity: "fail" },
+    ]);
+  });
+
+  it("allows placeholders, empty values and local URLs in .env.example", () => {
+    expect(
+      findSecrets([
+        ".env.example:1:OPENAI_API_KEY=",
+        `.env.example:2:OPENAI_API_KEY=${k("sk-", "x".repeat(40))}`,
+        `.env.example:3:ANTHROPIC_API_KEY=${k("sk-", "ant-", "your-key-here-1234567890abcdefghij")}`,
+        ".env.example:4:DATABASE_URL=postgres://user:password@localhost:5432/app",
+        ".env.example:5:JWT_SECRET=change-me",
+        `.env.example:6:JWT_SECRET="${k("Zq8!", "vL2mR7")}"`,
+      ]),
+    ).toEqual([]);
   });
 
   it("warns instead of failing for keys in tests and docs, and says where", () => {
