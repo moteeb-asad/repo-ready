@@ -134,6 +134,7 @@ src/
     secrets/         index.ts
       env/           env-tracked.ts  env-in-history.ts  env-example.ts  agent-files.ts  (local config: .env, AI agent files)
       leaks/         secrets-in-code.ts  secrets-logged.ts  key-patterns.ts  (secrets in code and logs)
+      push-protection.ts                                                     (GitHub secret scanning settings)
     readme/          index.ts  readme.ts
 ```
 
