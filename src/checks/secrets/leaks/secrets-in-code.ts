@@ -102,19 +102,25 @@ const PREFIXES = [
   "secret", "passw", "pwd", "api_?key", "apikey", "token", "private_?key",
 ].join("|");
 
+// .env.example is shared with everyone, so a real key there is a leak: only the exact formats run.
+// The secret-named-variable warning does not: `JWT_SECRET=` is the point of the file.
+const ENV_EXAMPLE_DETECTORS: Detector[] = [privateKey, vendorKey, supabaseServiceRole, connectionString];
+
 // The matched content is never returned.
 // Keys in tests and docs are usually fakes made to look real, so they are warnings, not failures.
 export function findSecrets(matches: GrepMatch[]): Finding[] {
   const found: Finding[] = [];
 
   for (const { file, line, content } of matches) {
-    if (isEnvExample(file) || VENDOR_PATH.test(file)) continue;
-    const where = TEST_PATH.test(file) ? " in a test file" : DOCS_PATH.test(file) ? " in docs" : "";
+    if (VENDOR_PATH.test(file)) continue;
+    const example = isEnvExample(file);
+    const where = example ? " in .env.example" : TEST_PATH.test(file) ? " in a test file" : DOCS_PATH.test(file) ? " in docs" : "";
+    const severityFor = (detector: Detector) => (example ? "fail" : where ? "warn" : detector.severity);
 
-    for (const detector of DETECTORS) {
+    for (const detector of example ? ENV_EXAMPLE_DETECTORS : DETECTORS) {
       const kind = detector.find(content, file);
       if (kind) {
-        found.push({ file, line, kind: `${kind}${where}`, severity: where ? "warn" : detector.severity });
+        found.push({ file, line, kind: `${kind}${where}`, severity: severityFor(detector) });
         break;
       }
     }
@@ -131,6 +137,7 @@ export async function secretsInCode(): Promise<Result> {
   }
 
   const failing = found.some((f) => f.severity === "fail");
+  const onlyEnvExample = found.every((f) => isEnvExample(f.file));
   const sorted = [...found.filter((f) => f.severity === "fail"), ...found.filter((f) => f.severity === "warn")];
   const shown = sorted.slice(0, 3).map((f) => `${f.file}:${f.line} (${f.kind})`);
   const more = found.length > 3 ? ` and ${found.length - 3} more` : "";
@@ -139,8 +146,10 @@ export async function secretsInCode(): Promise<Result> {
     id: "secrets-in-code",
     status: failing ? "fail" : "warn",
     message: `${shown.join(", ")}${more}`,
-    hint: failing
-      ? "Move each value to .env and read it from process.env. If it was ever committed, rotate the key"
-      : "If these are real secrets, move them to .env and rotate them. In tests, use obviously fake values like sk-test-xxxx",
+    hint: onlyEnvExample
+      ? "Replace each value with a placeholder (OPENAI_API_KEY=) and rotate the key: .env.example is shared with everyone"
+      : failing
+        ? "Move each value to .env and read it from process.env. If it was ever committed, rotate the key"
+        : "If these are real secrets, move them to .env and rotate them. In tests, use obviously fake values like sk-test-xxxx",
   };
 }
