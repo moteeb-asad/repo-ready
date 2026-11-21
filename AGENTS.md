@@ -132,7 +132,7 @@ src/
     ci/              index.ts  ci-on-pr.ts
     history/         index.ts  commit-messages.ts  direct-pushes.ts
     secrets/         index.ts
-      env/           env-tracked.ts  env-in-history.ts  env-example.ts      (.env files)
+      env/           env-tracked.ts  env-in-history.ts  env-example.ts  agent-files.ts  (local config: .env, AI agent files)
       leaks/         secrets-in-code.ts  secrets-logged.ts  key-patterns.ts  (secrets in code and logs)
     readme/          index.ts  readme.ts
 ```
