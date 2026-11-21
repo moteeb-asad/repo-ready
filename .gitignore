@@ -147,3 +147,7 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Local AI agent files: one developer's settings, may hold secrets (agent-files check)
+.claude/settings.local.json
+CLAUDE.local.md
