@@ -115,12 +115,39 @@ describe("findSecrets: vendor keys", () => {
     ).toEqual([]);
   });
 
-  it("warns instead of failing for keys in tests and docs, and says where", () => {
+  it("warns for keys in test files, fails for keys in docs, and says where", () => {
     const key = k("ghp", "_", RANDOM, "Ab12");
     expect(findSecrets([`src/feedback.test.ts:107:${key}`, `docs/setup.mdx:80:${key}`])).toEqual([
       { file: "src/feedback.test.ts", line: 107, kind: "GitHub token in a test file", severity: "warn" },
-      { file: "docs/setup.mdx", line: 80, kind: "GitHub token in docs", severity: "warn" },
+      { file: "docs/setup.mdx", line: 80, kind: "GitHub token in docs", severity: "fail" },
     ]);
+  });
+
+  it("fails for real keys and database URLs in docs and reports an AI agent wrote", () => {
+    const url = k("postgres", "://", "app:Zq8vL2mR7x", "@", "db.abc123.supabase.co:5432/app");
+    expect(
+      findSecrets([
+        `docs/ci-setup.md:12:export OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`,
+        `TASK_REPORT.md:30:DATABASE_URL=${url}`,
+        `notes/configured.txt:4:${k("AKIA", "Q7V2LM9XKR4TB8NZ")}`,
+      ]).map((f) => `${f.kind} ${f.severity}`),
+    ).toEqual(["OpenAI API key in docs fail", "database URL with password in docs fail", "AWS access key in docs fail"]);
+  });
+
+  it("only warns for a PRIVATE KEY header in docs: one line can't tell an example from a real key", () => {
+    expect(findSecrets([`docs/other-git.mdx:80:${k("-----BEGIN RSA ", "PRIVATE KEY-----")}`])).toEqual([
+      { file: "docs/other-git.mdx", line: 80, kind: "private key in docs", severity: "warn" },
+    ]);
+  });
+
+  it("still ignores placeholders in docs", () => {
+    expect(
+      findSecrets([
+        `README.md:40:OPENAI_API_KEY=${k("sk-", "x".repeat(40))}`,
+        `docs/setup.md:8:${k("AKIA", "IOSFODNN7EXAMPLE")}`,
+        "docs/setup.md:9:DATABASE_URL=postgres://user:password@localhost:5432/app",
+      ]),
+    ).toEqual([]);
   });
 
   it("skips patches, minified bundles and vendored code", () => {

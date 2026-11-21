@@ -107,20 +107,30 @@ const PREFIXES = [
 const ENV_EXAMPLE_DETECTORS: Detector[] = [privateKey, vendorKey, supabaseServiceRole, connectionString];
 
 // The matched content is never returned.
-// Keys in tests and docs are usually fakes made to look real, so they are warnings, not failures.
+// Docs and .env.example are written to be read by others, and AI agents copy real values into
+// them, so a real key there fails. Placeholders are already ignored by the detectors.
+// Two cases stay warnings: test files (fakes made to look real) and a PRIVATE KEY header in docs
+// (one line can't tell an example block from a real one).
+function severityFor(detector: Detector, place: "env-example" | "test" | "docs" | "code"): Severity {
+  if (place === "test") return "warn";
+  if (place === "docs" && detector === privateKey) return "warn";
+  if (place === "env-example" || place === "docs") return "fail";
+  return detector.severity;
+}
+
 export function findSecrets(matches: GrepMatch[]): Finding[] {
   const found: Finding[] = [];
 
   for (const { file, line, content } of matches) {
     if (VENDOR_PATH.test(file)) continue;
     const example = isEnvExample(file);
-    const where = example ? " in .env.example" : TEST_PATH.test(file) ? " in a test file" : DOCS_PATH.test(file) ? " in docs" : "";
-    const severityFor = (detector: Detector) => (example ? "fail" : where ? "warn" : detector.severity);
+    const place = example ? "env-example" : TEST_PATH.test(file) ? "test" : DOCS_PATH.test(file) ? "docs" : "code";
+    const where = { "env-example": " in .env.example", test: " in a test file", docs: " in docs", code: "" }[place];
 
     for (const detector of example ? ENV_EXAMPLE_DETECTORS : DETECTORS) {
       const kind = detector.find(content, file);
       if (kind) {
-        found.push({ file, line, kind: `${kind}${where}`, severity: severityFor(detector) });
+        found.push({ file, line, kind: `${kind}${where}`, severity: severityFor(detector, place) });
         break;
       }
     }
@@ -137,7 +147,8 @@ export async function secretsInCode(): Promise<Result> {
   }
 
   const failing = found.some((f) => f.severity === "fail");
-  const onlyEnvExample = found.every((f) => isEnvExample(f.file));
+  // Files meant to be shared (docs, .env.example) get a placeholder, not process.env.
+  const onlySharedFiles = found.every((f) => isEnvExample(f.file) || (DOCS_PATH.test(f.file) && !TEST_PATH.test(f.file)));
   const sorted = [...found.filter((f) => f.severity === "fail"), ...found.filter((f) => f.severity === "warn")];
   const shown = sorted.slice(0, 3).map((f) => `${f.file}:${f.line} (${f.kind})`);
   const more = found.length > 3 ? ` and ${found.length - 3} more` : "";
@@ -146,8 +157,8 @@ export async function secretsInCode(): Promise<Result> {
     id: "secrets-in-code",
     status: failing ? "fail" : "warn",
     message: `${shown.join(", ")}${more}`,
-    hint: onlyEnvExample
-      ? "Replace each value with a placeholder (OPENAI_API_KEY=) and rotate the key: .env.example is shared with everyone"
+    hint: onlySharedFiles
+      ? "Replace each value with a placeholder (OPENAI_API_KEY=) and rotate the key: docs and .env.example are shared with everyone"
       : failing
         ? "Move each value to .env and read it from process.env. If it was ever committed, rotate the key"
         : "If these are real secrets, move them to .env and rotate them. In tests, use obviously fake values like sk-test-xxxx",
