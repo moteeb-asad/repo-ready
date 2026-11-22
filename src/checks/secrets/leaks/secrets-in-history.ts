@@ -63,6 +63,17 @@ export async function secretsInHistory(): Promise<Result> {
     };
   }
 
+  // A shallow clone (actions/checkout's default depth 1) has only the latest commits: a pass would mislead.
+  const shallow = await execa("git", ["rev-parse", "--is-shallow-repository"], { reject: false });
+  if (shallow.stdout.trim() === "true") {
+    return {
+      id: ID,
+      status: "warn",
+      message: "skipped: shallow clone, older commits are not on this machine",
+      hint: "In GitHub Actions, set fetch-depth: 0 on actions/checkout. Locally, run git fetch --unshallow",
+    };
+  }
+
   const log = await execa(
     "git",
     ["log", "--all", `-G${STRONG_PREFIXES}`, "-p", "--unified=0", "--no-color", "--no-ext-diff", `--format=${MARK}%h|%cr`],
@@ -71,7 +82,16 @@ export async function secretsInHistory(): Promise<Result> {
   if (log.timedOut) {
     return { id: ID, status: "warn", message: `skipped: history too large to scan in ${TIMEOUT_MS / 1000} seconds` };
   }
-  if (log.failed) return judgeHistory([]); // no commits yet
+  if (log.isMaxBuffer) return { id: ID, status: "warn", message: "skipped: history too large to scan" };
+  // A repo with no commits exits 0, so a failure always means the history was not scanned.
+  if (log.failed) {
+    return {
+      id: ID,
+      status: "warn",
+      message: `skipped: git log failed (exit code ${log.exitCode})`,
+      hint: "Run git log --all in this folder to see the error",
+    };
+  }
 
   const current = new Set((await grepTracked(STRONG_PREFIXES)).map((m) => `${m.file}\0${m.content.trim()}`));
   return judgeHistory(findInHistory(log.stdout, current));
