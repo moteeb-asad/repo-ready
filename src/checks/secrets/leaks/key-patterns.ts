@@ -21,4 +21,16 @@ export const KEYS: { kind: string; prefix: string; pattern: RegExp }[] = [
   { kind: "Hugging Face token", prefix: "hf_", pattern: /(?<![A-Za-z0-9])hf_[A-Za-z0-9]{34}/ },
   { kind: "Groq API key", prefix: "gsk_", pattern: /(?<![A-Za-z0-9])gsk_[A-Za-z0-9]{52}/ },
   { kind: "Resend API key", prefix: "re_", pattern: /(?<![A-Za-z0-9])re_[A-Za-z0-9]{8}_[A-Za-z0-9]{24}/ },
+  // devstoreaccount1 is the Azurite emulator account; Microsoft publishes its key.
+  {
+    kind: "Azure Storage account key",
+    prefix: "AccountKey=",
+    pattern: /AccountName=(?!devstoreaccount1;)[a-z0-9]{3,24};AccountKey=[A-Za-z0-9+/]{86}==/,
+  },
+  // Same format as gitleaks' azure-ad-client-secret rule: 3 characters, a digit, "Q~", 31-34 more.
+  {
+    kind: "Azure AD client secret",
+    prefix: "Q~",
+    pattern: /(?<![A-Za-z0-9_~.-])[A-Za-z0-9_~.]{3}\dQ~[A-Za-z0-9_~.-]{31,34}(?![A-Za-z0-9_~.-])/,
+  },
 ];

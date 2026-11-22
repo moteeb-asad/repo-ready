@@ -87,18 +87,67 @@ describe("findSecrets: vendor keys", () => {
     ).toEqual([]);
   });
 
-  it("ignores .env.example and its variants", () => {
+  it("fails on a real key in .env.example and its variants", () => {
     for (const file of ["api/.env.example", ".env.local.example", ".env.sample", ".env.template"]) {
-      expect(findSecrets([`${file}:1:OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`]), file).toEqual([]);
+      expect(findSecrets([`${file}:1:OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`]), file).toEqual([
+        { file, line: 1, kind: "OpenAI API key in .env.example", severity: "fail" },
+      ]);
     }
   });
 
-  it("warns instead of failing for keys in tests and docs, and says where", () => {
+  it("fails on a real database URL in .env.example", () => {
+    const url = k("postgres", "://", "app:Zq8vL2mR7x", "@", "db.abc123.supabase.co:5432/app");
+    expect(findSecrets([`.env.example:3:DATABASE_URL=${url}`])).toEqual([
+      { file: ".env.example", line: 3, kind: "database URL with password in .env.example", severity: "fail" },
+    ]);
+  });
+
+  it("allows placeholders, empty values and local URLs in .env.example", () => {
+    expect(
+      findSecrets([
+        ".env.example:1:OPENAI_API_KEY=",
+        `.env.example:2:OPENAI_API_KEY=${k("sk-", "x".repeat(40))}`,
+        `.env.example:3:ANTHROPIC_API_KEY=${k("sk-", "ant-", "your-key-here-1234567890abcdefghij")}`,
+        ".env.example:4:DATABASE_URL=postgres://user:password@localhost:5432/app",
+        ".env.example:5:JWT_SECRET=change-me",
+        `.env.example:6:JWT_SECRET="${k("Zq8!", "vL2mR7")}"`,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("warns for keys in test files, fails for keys in docs, and says where", () => {
     const key = k("ghp", "_", RANDOM, "Ab12");
     expect(findSecrets([`src/feedback.test.ts:107:${key}`, `docs/setup.mdx:80:${key}`])).toEqual([
       { file: "src/feedback.test.ts", line: 107, kind: "GitHub token in a test file", severity: "warn" },
-      { file: "docs/setup.mdx", line: 80, kind: "GitHub token in docs", severity: "warn" },
+      { file: "docs/setup.mdx", line: 80, kind: "GitHub token in docs", severity: "fail" },
     ]);
+  });
+
+  it("fails for real keys and database URLs in docs and reports an AI agent wrote", () => {
+    const url = k("postgres", "://", "app:Zq8vL2mR7x", "@", "db.abc123.supabase.co:5432/app");
+    expect(
+      findSecrets([
+        `docs/ci-setup.md:12:export OPENAI_API_KEY=${k("sk-", "proj-", RANDOM)}`,
+        `TASK_REPORT.md:30:DATABASE_URL=${url}`,
+        `notes/configured.txt:4:${k("AKIA", "Q7V2LM9XKR4TB8NZ")}`,
+      ]).map((f) => `${f.kind} ${f.severity}`),
+    ).toEqual(["OpenAI API key in docs fail", "database URL with password in docs fail", "AWS access key in docs fail"]);
+  });
+
+  it("only warns for a PRIVATE KEY header in docs: one line can't tell an example from a real key", () => {
+    expect(findSecrets([`docs/other-git.mdx:80:${k("-----BEGIN RSA ", "PRIVATE KEY-----")}`])).toEqual([
+      { file: "docs/other-git.mdx", line: 80, kind: "private key in docs", severity: "warn" },
+    ]);
+  });
+
+  it("still ignores placeholders in docs", () => {
+    expect(
+      findSecrets([
+        `README.md:40:OPENAI_API_KEY=${k("sk-", "x".repeat(40))}`,
+        `docs/setup.md:8:${k("AKIA", "IOSFODNN7EXAMPLE")}`,
+        "docs/setup.md:9:DATABASE_URL=postgres://user:password@localhost:5432/app",
+      ]),
+    ).toEqual([]);
   });
 
   it("skips patches, minified bundles and vendored code", () => {
@@ -237,5 +286,89 @@ describe("findSecrets: secret-named variables", () => {
 
   it("prefers a vendor key over a secret-named variable on the same line", () => {
     expect(kinds([`a.ts:1:const apiKey = "${k("sk-", "proj-", RANDOM)}"`])).toEqual(["OpenAI API key"]);
+  });
+});
+
+describe("findSecrets: Azure Storage connection strings", () => {
+  // 86 base64 characters and "==", the length of a real account key.
+  const ACCOUNT_KEY = `${(RANDOM + RANDOM + RANDOM).slice(0, 86)}==`;
+  const connection = (account: string) =>
+    k("DefaultEndpointsProtocol=https;AccountName=", account, ";AccountKey=", ACCOUNT_KEY, ";EndpointSuffix=core.windows.net");
+
+  it("finds an account key in a connection string", () => {
+    expect(kinds([`appsettings.json:4:"Storage": "${connection("acmeprod")}"`])).toEqual(["Azure Storage account key"]);
+  });
+
+  it("ignores the Azurite emulator account and placeholders", () => {
+    expect(kinds([`a.json:1:"${connection("devstoreaccount1")}"`, `b.json:1:"${connection("youraccount")}"`])).toEqual([]);
+  });
+});
+
+describe("findSecrets: Azure AD client secrets", () => {
+  // 3 characters, a digit, "Q~", then 31-34 more: 40 characters in all.
+  const CLIENT_SECRET = k("aB3", "8Q~", RANDOM.slice(0, 34));
+
+  it("finds a client secret, for example in an app registration config", () => {
+    expect(kinds([`appsettings.json:6:"ClientSecret": "${CLIENT_SECRET}"`])).toEqual(["Azure AD client secret"]);
+    expect(kinds([`deploy.sh:2:az login --service-principal -u app -p ${CLIENT_SECRET} --tenant acme`])).toEqual([
+      "Azure AD client secret",
+    ]);
+  });
+
+  it("ignores placeholders, short values and Q~ inside longer words", () => {
+    expect(
+      kinds([
+        `a.json:1:"value": "${k("abc", "1Q~", "x".repeat(34))}"`,
+        `b.json:2:"value": "${k("aB3", "8Q~", "Q7v2Lm9X")}"`,
+        `c.txt:3:${k("prefix", "aB3", "8Q~", RANDOM.slice(0, 34))}`,
+      ]),
+    ).toEqual([]);
+  });
+});
+
+describe("findSecrets: secrets in commands", () => {
+  const PASSWORD = k("Tr0ub4", "dor!9x");
+  const TOKEN = k("ghx9", RANDOM);
+
+  it("finds passwords passed to psql and mysql", () => {
+    expect(
+      kinds([
+        `.claude/settings.local.json:5:"Bash(PGPASSWORD=${PASSWORD} psql -h db.acme.io -U app)"`,
+        `scripts/backup.sh:2:MYSQL_PWD='${PASSWORD}' mysqldump -h db.acme.io -u app shop > shop.sql`,
+        `scripts/seed.sh:3:mysql -h db.acme.io -u app -p${PASSWORD} shop < seed.sql`,
+        `scripts/seed.sh:4:mysql --host=db.acme.io --user=app --password=${PASSWORD} shop`,
+      ]),
+    ).toEqual(Array(4).fill("password in a command"));
+  });
+
+  it("finds a bearer token in a curl command", () => {
+    expect(kinds([`docs/api.md:7:curl -H "Authorization: Bearer ${TOKEN}" https://api.acme.io/v1/me`])).toEqual([
+      "bearer token in docs",
+    ]);
+  });
+
+  it("ignores variables, placeholders, defaults and a bare -p prompt", () => {
+    expect(
+      kinds([
+        `a.sh:1:PGPASSWORD=$DB_PASSWORD psql -U app`,
+        `b.sh:2:PGPASSWORD=postgres psql -h localhost`,
+        `c.sh:3:mysql -u root -p shop`,
+        `d.md:4:curl -H "Authorization: Bearer YOUR_API_TOKEN" https://api.acme.io`,
+        `e.md:5:curl -H "Authorization: Bearer <token>" https://api.acme.io`,
+        "f.ts:6:headers: { Authorization: `Bearer ${token}` }",
+        `g.sh:7:MYSQL_PWD="\${MYSQL_PASSWORD}" mysql -h db.acme.io -u app`,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("ignores passwords for a local database: no host, localhost or a docker service", () => {
+    expect(
+      kinds([
+        `.github/workflows/ci.yml:9:--health-cmd="mysqladmin ping -uroot -p${PASSWORD}"`,
+        `a.sh:1:PGPASSWORD=${PASSWORD} psql -h localhost -U app`,
+        `b.sh:2:mysql -h db -u app -p${PASSWORD}`,
+        `c.sh:3:mysql -h 127.0.0.1 -u app -p${PASSWORD}`,
+      ]),
+    ).toEqual([]);
   });
 });

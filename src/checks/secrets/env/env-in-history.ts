@@ -1,4 +1,5 @@
 import { execa } from "execa";
+import { isShallow, SHALLOW_HINT } from "../../../git.js";
 import type { Result } from "../../../types.js";
 import { findEnvFiles } from "./env-tracked.js";
 
@@ -22,12 +23,30 @@ export function findEnvCommits(lines: string[]): Found[] {
 }
 
 export async function envInHistory(): Promise<Result> {
-  const { stdout } = await execa(
+  if (await isShallow()) {
+    return {
+      id: "env-in-history",
+      status: "warn",
+      message: "skipped: shallow clone, older commits are not on this machine",
+      hint: SHALLOW_HINT,
+    };
+  }
+
+  const log = await execa(
     "git",
     ["log", "--all", "--diff-filter=A", "--name-only", "--format=@@%h|%cr", "--", ":/*.env*"],
-    { lines: true },
+    { lines: true, reject: false },
   );
-  const found = findEnvCommits(stdout);
+  // A repo with no commits exits 0, so a failure always means the history was not scanned.
+  if (log.failed) {
+    return {
+      id: "env-in-history",
+      status: "warn",
+      message: `skipped: git log failed (exit code ${log.exitCode})`,
+      hint: "Run git log --all in this folder to see the error",
+    };
+  }
+  const found = findEnvCommits(log.stdout);
 
   if (found.length === 0) {
     return { id: "env-in-history", status: "pass", message: "no .env file in git history" };
