@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { findInHistory, judgeHistory } from "./secrets-in-history.js";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execa } from "execa";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { findInHistory, judgeHistory, secretsInHistory } from "./secrets-in-history.js";
 
 // Fake keys are built from parts so this file never contains a full key pattern.
 const k = (...parts: string[]) => parts.join("");
@@ -79,5 +84,88 @@ describe("judgeHistory", () => {
       message: "docs/ci-setup.md (OpenAI API key in docs, 1111111, 4 months ago)",
       hint: "Rotate each key: it is still readable in git history. Deleting the file or line does not help",
     });
+  });
+});
+
+// secretsInHistory() against real temp repos. execa is wrapped so a test can fake one git log failure.
+vi.mock("execa", async (importOriginal) => {
+  const real = await importOriginal<typeof import("execa")>();
+  return { ...real, execa: vi.fn(real.execa) };
+});
+const realExeca = (await vi.importActual<typeof import("execa")>("execa")).execa;
+
+const git = (cwd: string, ...args: string[]) =>
+  execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", ...args], { cwd, stdio: "pipe" });
+
+describe("secretsInHistory", { timeout: 30_000 }, () => {
+  const home = process.cwd();
+  const dirs: string[] = [];
+  const newDir = () => {
+    const dir = mkdtempSync(join(tmpdir(), "rr-hist-"));
+    dirs.push(dir);
+    return dir;
+  };
+  const emptyRepo = () => {
+    const dir = newDir();
+    git(dir, "init", "-q");
+    return dir;
+  };
+  // A key added to docs/setup.md in the first commit and deleted in the second.
+  const deletedKeyRepo = () => {
+    const dir = emptyRepo();
+    mkdirSync(join(dir, "docs"));
+    writeFileSync(join(dir, "docs", "setup.md"), `export OPENAI_API_KEY=${KEY}\n`);
+    git(dir, "add", ".");
+    git(dir, "commit", "-qm", "docs: add setup");
+    writeFileSync(join(dir, "docs", "setup.md"), "export OPENAI_API_KEY=\n");
+    git(dir, "commit", "-qam", "docs: remove key");
+    return dir;
+  };
+  // Fakes the git log result; every other git call runs for real.
+  const failLog = (result: object) =>
+    vi.mocked(execa).mockImplementation(((file: string, args: string[], options: object) =>
+      args[0] === "log"
+        ? Promise.resolve({ failed: true, timedOut: false, isMaxBuffer: false, exitCode: 128, stdout: [], ...result })
+        : realExeca(file, args, options)) as never);
+
+  afterEach(() => {
+    process.chdir(home);
+    vi.mocked(execa).mockImplementation(realExeca as never);
+    for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true, maxRetries: 5 });
+  });
+
+  it("passes in a repo with no commits", async () => {
+    process.chdir(emptyRepo());
+    expect(await secretsInHistory()).toMatchObject({ status: "pass", message: "no secrets in git history" });
+  });
+
+  it("fails for a key that a later commit deleted", async () => {
+    process.chdir(deletedKeyRepo());
+    const result = await secretsInHistory();
+    expect(result).toMatchObject({ status: "fail" });
+    expect(result.message).toContain("docs/setup.md (OpenAI API key in docs,");
+    expect(result.message).not.toContain(KEY);
+  });
+
+  it("warns instead of passing in a shallow clone", async () => {
+    const shallow = join(newDir(), "clone");
+    git(home, "clone", "-q", "--depth", "1", `file://${deletedKeyRepo().replace(/\\/g, "/")}`, shallow);
+    process.chdir(shallow);
+    expect(await secretsInHistory()).toMatchObject({
+      status: "warn",
+      message: "skipped: shallow clone, older commits are not on this machine",
+    });
+  });
+
+  it("warns instead of passing when git log fails", async () => {
+    process.chdir(emptyRepo());
+    failLog({});
+    expect(await secretsInHistory()).toMatchObject({ status: "warn", message: "skipped: git log failed (exit code 128)" });
+  });
+
+  it("warns instead of passing when the output is too large", async () => {
+    process.chdir(emptyRepo());
+    failLog({ isMaxBuffer: true });
+    expect(await secretsInHistory()).toMatchObject({ status: "warn", message: "skipped: history too large to scan" });
   });
 });
