@@ -34,13 +34,17 @@ const privateKey: Detector = {
 const CONNECTION = /\b(postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|amqps?):\/\/([^:\s/@'"`]+):([^@\s'"`]+)@([^\s/:'"`?]+)/i;
 const DEFAULT_PASSWORDS = new Set(["password", "pass", "postgres", "root", "secret", "admin", "test", "mysql", "mongo", "redis", "guest"]);
 
+// No dot: localhost or a docker-compose service name like "db".
+function isLocalHost(host: string): boolean {
+  return !host.includes(".") || /^(127\.|0\.0\.0\.0)|^host\.docker\.internal$/.test(host);
+}
+
 const connectionString: Detector = {
   severity: "fail",
   find: (content) => {
     const [, , user, password, host] = content.match(CONNECTION) ?? [];
     if (!user || !password || !host) return undefined;
-    // No dot: localhost or a docker-compose service name like "db".
-    if (!host.includes(".") || /^(127\.|0\.0\.0\.0)|^host\.docker\.internal$/.test(host)) return undefined;
+    if (isLocalHost(host)) return undefined;
     if (password.includes("$") || password === user || DEFAULT_PASSWORDS.has(password.toLowerCase())) return undefined;
     if (PLACEHOLDER.test(password)) return undefined;
     return "database URL with password";
@@ -61,6 +65,35 @@ const supabaseServiceRole: Detector = {
     } catch {
       return undefined;
     }
+  },
+};
+
+// Secrets passed to a command: PGPASSWORD=… psql, mysql -p…, curl -H "Authorization: Bearer …".
+// Agents save approved commands, secret included, in files like .claude/settings.local.json.
+const COMMANDS: { kind: string; pattern: RegExp }[] = [
+  { kind: "password in a command", pattern: /\b(?:PGPASSWORD|MYSQL_PWD)=["']?([^\s"'`;&|]+)/ },
+  { kind: "password in a command", pattern: /\bmysql(?:dump|admin)?\b.*?\s(?:-p|--password=)["']?([^\s"'`;&|]+)/ },
+  { kind: "bearer token", pattern: /\bAuthorization["']?\s*[:=]\s*["'`]?Bearer\s+([A-Za-z0-9._~+/=-]{20,})/i },
+];
+// psql and mysql connect to the local machine without -h, like a CI service container.
+const COMMAND_HOST = /(?:\s-h\s*|--host[= ])["']?([^\s"'`;&|:]+)/;
+
+const commandSecret: Detector = {
+  severity: "fail",
+  find: (content) => {
+    for (const { kind, pattern } of COMMANDS) {
+      const value = content.match(pattern)?.[1];
+      if (!value || /[$%{}<>]/.test(value) || DEFAULT_PASSWORDS.has(value.toLowerCase())) continue;
+      if (PLACEHOLDER.test(value) || /^[A-Z][A-Z0-9_]{2,}$/.test(value)) continue; // a placeholder or an env variable name
+      if (kind === "bearer token") {
+        if (isPlaceholder(value) || !/\d/.test(value)) continue;
+      } else {
+        const host = content.match(COMMAND_HOST)?.[1];
+        if (value.length < 6 || !host || isLocalHost(host)) continue;
+      }
+      return kind;
+    }
+    return undefined;
   },
 };
 
@@ -91,11 +124,11 @@ const secretVariable: Detector = {
 };
 
 // Exact formats only: a match is a real secret unless it is a placeholder. Strongest first.
-const STRONG: Detector[] = [privateKey, vendorKey, supabaseServiceRole, connectionString];
+const STRONG: Detector[] = [privateKey, vendorKey, supabaseServiceRole, connectionString, commandSecret];
 const ALL: Detector[] = [...STRONG, secretVariable];
 
 // Cheap first pass for git grep / git log -G (POSIX ERE). The detectors do the exact matching.
-export const STRONG_PREFIXES = [...KEYS.map((k) => k.prefix), "PRIVATE KEY-----", "eyJ", "://[^ ]*:[^ ]*@"].join("|");
+export const STRONG_PREFIXES = [...KEYS.map((k) => k.prefix), "PRIVATE KEY-----", "eyJ", "://[^ ]*:[^ ]*@", "PGPASSWORD=", "MYSQL_PWD=", "mysql", "Bearer "].join("|");
 // Also the names the secret-named-variable warning looks for. Use with case-insensitive search.
 export const PREFIXES = [STRONG_PREFIXES, "secret", "passw", "pwd", "api_?key", "apikey", "token", "private_?key"].join("|");
 
