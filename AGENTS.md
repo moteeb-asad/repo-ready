@@ -133,7 +133,8 @@ src/
     history/         index.ts  commit-messages.ts  direct-pushes.ts
     secrets/         index.ts
       env/           env-tracked.ts  env-in-history.ts  env-example.ts  agent-files.ts  (local config: .env, AI agent files)
-      leaks/         secrets-in-code.ts  secrets-logged.ts  key-patterns.ts  (secrets in code and logs)
+      leaks/         detectors.ts  secrets-in-code.ts  secrets-in-history.ts  secrets-logged.ts  key-patterns.ts
+                     (secrets in code, history and logs; detectors.ts is shared by code and history)
       push-protection.ts                                                     (GitHub secret scanning settings)
     readme/          index.ts  readme.ts
 ```
@@ -212,7 +213,7 @@ Build the smallest thing that solves the task. Nothing more.
 - CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
 - Rulesets: "Protect main branch" (`main`) and "Protect develop" (`develop`). Both require a pull request and a passing `check`, block force pushes and deletion. Only `develop` requires branches to be up to date: `main` only takes pull requests from `develop`, and CI already tests the merge result, so on `main` it would only force a back-merge after every release. `main` allows merge commits only.
 - Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
-- Checks built: `branch-protection`, `ci-on-pr`, `commit-messages`, `direct-pushes`, `env-tracked`, `env-in-history`, `secrets-in-code`, `secrets-logged`, `env-example`, `readme`. The report is grouped by section, shows the checked branch, and has a fix hint under each warning and failure.
+- Checks built: `branch-protection`, `ci-on-pr`, `commit-messages`, `direct-pushes`, `env-tracked`, `env-in-history`, `secrets-in-code`, `secrets-in-history`, `secrets-logged`, `env-example`, `readme`. The report is grouped by section, shows the checked branch, and has a fix hint under each warning and failure.
 - Roadmap and progress: private GitHub project "repo-ready roadmap" (Version and Priority fields).
 - Tested against other people's repos (blobless clones in `C:\dev\tests\repo-ready-tests`); false alarms found there are fixed before new checks.
 - Next (v0.2.0): `ci-green`. Use `githubClient()` and `apiSkipReason()` from `github.ts`, like `branch-protection` and `direct-pushes`.
