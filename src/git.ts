@@ -52,3 +52,12 @@ export async function readTracked(file: string): Promise<string> {
   const { stdout } = await execa("git", ["show", `:${file}`]);
   return stdout;
 }
+
+// A shallow clone (actions/checkout's default depth 1) has only the latest commits, so a history
+// check that finds nothing there must not pass.
+export async function isShallow(): Promise<boolean> {
+  const { stdout } = await execa("git", ["rev-parse", "--is-shallow-repository"], { reject: false });
+  return stdout.trim() === "true";
+}
+
+export const SHALLOW_HINT = "In GitHub Actions, set fetch-depth: 0 on actions/checkout. Locally, run git fetch --unshallow";

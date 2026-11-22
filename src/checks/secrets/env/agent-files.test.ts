@@ -51,7 +51,23 @@ describe("parseHistory", () => {
 });
 
 describe("judgeAgentFiles", () => {
-  const none = { tracked: [], inHistory: [], notIgnored: [] };
+  const none = { tracked: [], inHistory: [], notIgnored: [], historySkipped: undefined };
+
+  it("warns instead of passing when the history was not read", () => {
+    expect(judgeAgentFiles({ ...none, historySkipped: "shallow clone" })).toMatchObject({
+      status: "warn",
+      message: "no local AI agent files tracked, history not checked: shallow clone",
+      hint: "In GitHub Actions, set fetch-depth: 0 on actions/checkout. Locally, run git fetch --unshallow",
+    });
+    expect(judgeAgentFiles({ ...none, historySkipped: "git log failed (exit code 128)" })).toMatchObject({
+      status: "warn",
+      hint: "Run git log --all in this folder to see the error",
+    });
+  });
+
+  it("still fails for a tracked file in a shallow clone", () => {
+    expect(judgeAgentFiles({ ...none, tracked: ["CLAUDE.local.md"], historySkipped: "shallow clone" })).toMatchObject({ status: "fail" });
+  });
 
   it("passes when nothing is tracked and the file is ignored by the repo", () => {
     expect(judgeAgentFiles(none)).toEqual({ id: "agent-files", status: "pass", message: "no local AI agent files tracked" });
