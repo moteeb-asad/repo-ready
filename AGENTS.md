@@ -210,11 +210,11 @@ Build the smallest thing that solves the task. Nothing more.
 - Repo created: public, `moteeb-asad/repo-ready`, with MIT license and Node `.gitignore`.
 - `develop` branch created.
 - Packages installed: commander, @octokit/rest, execa, picocolors, yaml, typescript, tsup, vitest, @types/node.
-- Published on npm as `check-repo-ready` (the name `repo-ready` was blocked as too similar to `repoready`). The installed command is `repo-ready`. Latest release: `0.1.3`, with a GitHub release per version.
+- Published on npm as `check-repo-ready` (the name `repo-ready` was blocked as too similar to `repoready`). The installed command is `repo-ready`. Latest release: `0.2.0`, with a GitHub release per version.
 - CI: `.github/workflows/ci.yml`, job `check` (type check, test, build) on pull requests and pushes to `main` and `develop`.
 - Rulesets: "Protect main branch" (`main`) and "Protect develop" (`develop`). Both require a pull request and a passing `check`, block force pushes and deletion. Only `develop` requires branches to be up to date: `main` only takes pull requests from `develop`, and CI already tests the merge result, so on `main` it would only force a back-merge after every release. `main` allows merge commits only.
 - Decision records in `docs/decisions/`. Write one only when choosing between real alternatives.
-- Checks built: `branch-protection`, `ci-on-pr`, `commit-messages`, `direct-pushes`, `env-tracked`, `env-in-history`, `secrets-in-code`, `secrets-in-history`, `secrets-logged`, `env-example`, `readme`. The report is grouped by section, shows the checked branch, and has a fix hint under each warning and failure.
+- Checks built: `branch-protection`, `ci-on-pr`, `commit-messages`, `direct-pushes`, `env-tracked`, `env-in-history`, `agent-files`, `secrets-in-code`, `secrets-in-history`, `secrets-logged`, `env-example`, `push-protection`, `readme`. The report is grouped by section, shows the checked branch, and has a fix hint under each warning and failure.
 - Roadmap and progress: private GitHub project "repo-ready roadmap" (Version and Priority fields).
 - Tested against other people's repos (blobless clones in `C:\dev\tests\repo-ready-tests`); false alarms found there are fixed before new checks.
-- Next (v0.2.0): `ci-green`. Use `githubClient()` and `apiSkipReason()` from `github.ts`, like `branch-protection` and `direct-pushes`.
+- Next (v0.3.0): `ci-green`. Use `githubClient()` and `apiSkipReason()` from `github.ts`, like `branch-protection` and `direct-pushes`.
