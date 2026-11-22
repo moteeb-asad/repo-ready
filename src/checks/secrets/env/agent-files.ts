@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join, posix } from "node:path";
 import { execa } from "execa";
-import { trackedFiles } from "../../../git.js";
+import { isShallow, SHALLOW_HINT, trackedFiles } from "../../../git.js";
 import type { Result } from "../../../types.js";
 
 const ID = "agent-files";
@@ -38,9 +38,10 @@ export type AgentFilesState = {
   tracked: string[];
   inHistory: { file: string; commit: string; when: string }[];
   notIgnored: string[]; // settings.local.json paths in Claude Code folders that no repo .gitignore covers
+  historySkipped: string | undefined; // why the history was not read, e.g. "shallow clone"
 };
 
-export function judgeAgentFiles({ tracked, inHistory, notIgnored }: AgentFilesState): Result {
+export function judgeAgentFiles({ tracked, inHistory, notIgnored, historySkipped }: AgentFilesState): Result {
   if (tracked.length > 0) {
     return {
       id: ID,
@@ -66,6 +67,15 @@ export function judgeAgentFiles({ tracked, inHistory, notIgnored }: AgentFilesSt
       hint: "Add .claude/settings.local.json and CLAUDE.local.md to the repo's .gitignore",
     };
   }
+  // Nothing tracked, but the history was not read: a pass would mislead.
+  if (historySkipped) {
+    return {
+      id: ID,
+      status: "warn",
+      message: `no local AI agent files tracked, history not checked: ${historySkipped}`,
+      hint: historySkipped === "shallow clone" ? SHALLOW_HINT : "Run git log --all in this folder to see the error",
+    };
+  }
   return { id: ID, status: "pass", message: "no local AI agent files tracked" };
 }
 
@@ -85,12 +95,16 @@ export async function agentFiles(): Promise<Result> {
   const files = await trackedFiles();
   const tracked = findLocalAgentFiles(files);
 
-  const log = await execa(
-    "git",
-    ["log", "--all", "--diff-filter=A", "--name-only", "--format=@@%h|%cr", "--", ":/*.claude/settings.local.json", ":/*CLAUDE.local.md"],
-    { lines: true, reject: false },
-  );
-  const inHistory = log.failed ? [] : parseHistory(log.stdout);
+  const shallow = await isShallow();
+  const log = shallow
+    ? undefined
+    : await execa(
+        "git",
+        ["log", "--all", "--diff-filter=A", "--name-only", "--format=@@%h|%cr", "--", ":/*.claude/settings.local.json", ":/*CLAUDE.local.md"],
+        { lines: true, reject: false },
+      );
+  const inHistory = log && !log.failed ? parseHistory(log.stdout) : [];
+  const historySkipped = shallow ? "shallow clone" : log?.failed ? `git log failed (exit code ${log.exitCode})` : undefined;
 
   // check-ignore takes paths from the repo root.
   const root = (await execa("git", ["rev-parse", "--show-toplevel"])).stdout;
@@ -105,5 +119,5 @@ export async function agentFiles(): Promise<Result> {
     if (!ignoredByRepo(check.stdout)) notIgnored.push(path);
   }
 
-  return judgeAgentFiles({ tracked, inHistory, notIgnored });
+  return judgeAgentFiles({ tracked, inHistory, notIgnored, historySkipped });
 }

@@ -1,4 +1,5 @@
 import { execa } from "execa";
+import { isShallow, SHALLOW_HINT } from "../../../git.js";
 import type { Result } from "../../../types.js";
 import { findEnvFiles } from "./env-tracked.js";
 
@@ -22,14 +23,12 @@ export function findEnvCommits(lines: string[]): Found[] {
 }
 
 export async function envInHistory(): Promise<Result> {
-  // A shallow clone (actions/checkout's default depth 1) has only the latest commits: a pass would mislead.
-  const shallow = await execa("git", ["rev-parse", "--is-shallow-repository"], { reject: false });
-  if (shallow.stdout.trim() === "true") {
+  if (await isShallow()) {
     return {
       id: "env-in-history",
       status: "warn",
       message: "skipped: shallow clone, older commits are not on this machine",
-      hint: "In GitHub Actions, set fetch-depth: 0 on actions/checkout. Locally, run git fetch --unshallow",
+      hint: SHALLOW_HINT,
     };
   }
 
