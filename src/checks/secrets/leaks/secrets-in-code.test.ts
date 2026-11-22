@@ -288,3 +288,65 @@ describe("findSecrets: secret-named variables", () => {
     expect(kinds([`a.ts:1:const apiKey = "${k("sk-", "proj-", RANDOM)}"`])).toEqual(["OpenAI API key"]);
   });
 });
+
+describe("findSecrets: Azure Storage connection strings", () => {
+  // 86 base64 characters and "==", the length of a real account key.
+  const ACCOUNT_KEY = `${(RANDOM + RANDOM + RANDOM).slice(0, 86)}==`;
+  const connection = (account: string) =>
+    k("DefaultEndpointsProtocol=https;AccountName=", account, ";AccountKey=", ACCOUNT_KEY, ";EndpointSuffix=core.windows.net");
+
+  it("finds an account key in a connection string", () => {
+    expect(kinds([`appsettings.json:4:"Storage": "${connection("acmeprod")}"`])).toEqual(["Azure Storage account key"]);
+  });
+
+  it("ignores the Azurite emulator account and placeholders", () => {
+    expect(kinds([`a.json:1:"${connection("devstoreaccount1")}"`, `b.json:1:"${connection("youraccount")}"`])).toEqual([]);
+  });
+});
+
+describe("findSecrets: secrets in commands", () => {
+  const PASSWORD = k("Tr0ub4", "dor!9x");
+  const TOKEN = k("ghx9", RANDOM);
+
+  it("finds passwords passed to psql and mysql", () => {
+    expect(
+      kinds([
+        `.claude/settings.local.json:5:"Bash(PGPASSWORD=${PASSWORD} psql -h db.acme.io -U app)"`,
+        `scripts/backup.sh:2:MYSQL_PWD='${PASSWORD}' mysqldump -h db.acme.io -u app shop > shop.sql`,
+        `scripts/seed.sh:3:mysql -h db.acme.io -u app -p${PASSWORD} shop < seed.sql`,
+        `scripts/seed.sh:4:mysql --host=db.acme.io --user=app --password=${PASSWORD} shop`,
+      ]),
+    ).toEqual(Array(4).fill("password in a command"));
+  });
+
+  it("finds a bearer token in a curl command", () => {
+    expect(kinds([`docs/api.md:7:curl -H "Authorization: Bearer ${TOKEN}" https://api.acme.io/v1/me`])).toEqual([
+      "bearer token in docs",
+    ]);
+  });
+
+  it("ignores variables, placeholders, defaults and a bare -p prompt", () => {
+    expect(
+      kinds([
+        `a.sh:1:PGPASSWORD=$DB_PASSWORD psql -U app`,
+        `b.sh:2:PGPASSWORD=postgres psql -h localhost`,
+        `c.sh:3:mysql -u root -p shop`,
+        `d.md:4:curl -H "Authorization: Bearer YOUR_API_TOKEN" https://api.acme.io`,
+        `e.md:5:curl -H "Authorization: Bearer <token>" https://api.acme.io`,
+        "f.ts:6:headers: { Authorization: `Bearer ${token}` }",
+        `g.sh:7:MYSQL_PWD="\${MYSQL_PASSWORD}" mysql -h db.acme.io -u app`,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("ignores passwords for a local database: no host, localhost or a docker service", () => {
+    expect(
+      kinds([
+        `.github/workflows/ci.yml:9:--health-cmd="mysqladmin ping -uroot -p${PASSWORD}"`,
+        `a.sh:1:PGPASSWORD=${PASSWORD} psql -h localhost -U app`,
+        `b.sh:2:mysql -h db -u app -p${PASSWORD}`,
+        `c.sh:3:mysql -h 127.0.0.1 -u app -p${PASSWORD}`,
+      ]),
+    ).toEqual([]);
+  });
+});

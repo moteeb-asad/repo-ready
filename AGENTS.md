@@ -187,6 +187,7 @@ Each check has a test file next to it (`env-tracked.test.ts`).
 - **Never merge a pull request, into `develop` or `main`.** Open it, wait for CI, and leave the review and the merge to me, every time. No auto-merge: it is off in the repo settings, Dependabot pull requests go into `develop` and are reviewed like any other, and the Actions token cannot approve pull requests.
 - Keep it simple. Don't add a dependency or a layer unless a check needs it.
 - Write tests for each check, including the failure case.
+- Docs, examples and `.env.example` contain only variable names or placeholders, never real values, not even to show the configuration. Fake keys in tests are built from parts (`k("sk-", ...)`) so repo-ready never flags itself.
 - I'm on Windows with PowerShell 5, so `&&` does not work in my terminal. Give commands one per line.
 
 ## Keep it simple
