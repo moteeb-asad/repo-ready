@@ -304,6 +304,28 @@ describe("findSecrets: Azure Storage connection strings", () => {
   });
 });
 
+describe("findSecrets: Azure AD client secrets", () => {
+  // 3 characters, a digit, "Q~", then 31-34 more: 40 characters in all.
+  const CLIENT_SECRET = k("aB3", "8Q~", RANDOM.slice(0, 34));
+
+  it("finds a client secret, for example in an app registration config", () => {
+    expect(kinds([`appsettings.json:6:"ClientSecret": "${CLIENT_SECRET}"`])).toEqual(["Azure AD client secret"]);
+    expect(kinds([`deploy.sh:2:az login --service-principal -u app -p ${CLIENT_SECRET} --tenant acme`])).toEqual([
+      "Azure AD client secret",
+    ]);
+  });
+
+  it("ignores placeholders, short values and Q~ inside longer words", () => {
+    expect(
+      kinds([
+        `a.json:1:"value": "${k("abc", "1Q~", "x".repeat(34))}"`,
+        `b.json:2:"value": "${k("aB3", "8Q~", "Q7v2Lm9X")}"`,
+        `c.txt:3:${k("prefix", "aB3", "8Q~", RANDOM.slice(0, 34))}`,
+      ]),
+    ).toEqual([]);
+  });
+});
+
 describe("findSecrets: secrets in commands", () => {
   const PASSWORD = k("Tr0ub4", "dor!9x");
   const TOKEN = k("ghx9", RANDOM);

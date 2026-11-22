@@ -27,4 +27,10 @@ export const KEYS: { kind: string; prefix: string; pattern: RegExp }[] = [
     prefix: "AccountKey=",
     pattern: /AccountName=(?!devstoreaccount1;)[a-z0-9]{3,24};AccountKey=[A-Za-z0-9+/]{86}==/,
   },
+  // Same format as gitleaks' azure-ad-client-secret rule: 3 characters, a digit, "Q~", 31-34 more.
+  {
+    kind: "Azure AD client secret",
+    prefix: "Q~",
+    pattern: /(?<![A-Za-z0-9_~.-])[A-Za-z0-9_~.]{3}\dQ~[A-Za-z0-9_~.-]{31,34}(?![A-Za-z0-9_~.-])/,
+  },
 ];
