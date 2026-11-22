@@ -80,7 +80,7 @@ Update with `npm update -g check-repo-ready`, remove with `npm uninstall -g chec
 
 - Node.js 22.12 or newer
 - git
-- For the `branch-protection` check only, a GitHub token from one of:
+- For the `branch-protection`, `direct-pushes` and `push-protection` checks only, a GitHub token from one of:
   - the [GitHub CLI](https://cli.github.com), logged in with `gh auth login`
   - a `GH_TOKEN` or `GITHUB_TOKEN` environment variable (GitHub Actions sets `GITHUB_TOKEN`)
 
@@ -112,7 +112,7 @@ reading those settings needs admin access.
 - repo-ready reads your files only on your machine. It never prints, saves or sends a secret:
   it shows the file, line and kind of key, never the key.
 - It changes nothing, downloads nothing, runs none of your code, and has no tracking.
-- It only talks to `api.github.com`, read-only, for `branch-protection` and `direct-pushes`.
+- It only talks to `api.github.com`, read-only, for `branch-protection`, `direct-pushes` and `push-protection`.
   Your GitHub token is never printed or stored.
 - It never rewrites git history. If a key was committed, **rotate it**: removing it from
   history does not make a leaked key safe again.
